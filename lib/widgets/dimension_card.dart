@@ -100,26 +100,16 @@ class _DimensionCardState extends State<DimensionCard> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Expanded(
-                            child: _isExpanded || !needsExpansion
-                                ? Text(
-                                    description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    maxLines: _isExpanded ? null : 1,
-                                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                                  )
-                                : Text(
-                                    description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                          Flexible(
+                            child: Text(
+                              description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: _isExpanded ? null : 1,
+                              overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                            ),
                           ),
                           if (needsExpansion && !_isExpanded)
                             Text(
@@ -131,12 +121,15 @@ class _DimensionCardState extends State<DimensionCard> {
                               ),
                           ),
                           if (needsExpansion)
-                            Icon(
-                              _isExpanded
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                              size: 16,
-                              color: Colors.grey.shade400,
+                            Padding(
+                              padding: const EdgeInsets.only(left: 2),
+                              child: Icon(
+                                _isExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
                             ),
                         ],
                       ),

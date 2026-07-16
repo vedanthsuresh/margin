@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../models/margin_context.dart';
+import '../models/calendar_data.dart';
 
 /// Enable demo mode (simulated calendar connection) for development/testing
 /// Set this to false when OAuth is properly configured
@@ -32,6 +33,71 @@ class CalendarService {
   Future<bool> hasPreviousSignIn() async {
     final token = await _storage.read(key: _accessTokenKey);
     return token != null;
+  }
+
+  /// Get today's meeting load (hours of meetings today)
+  Future<CalendarData> getTodayMeetingLoad() async {
+    if (!_isConnected || _calendarApi == null) {
+      // Return mock data for demo mode
+      return _getDemoMeetingLoad();
+    }
+
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      // Fetch today's events
+      final events = await _calendarApi!.events.list(
+        'primary',
+        timeMin: startOfDay,
+        timeMax: endOfDay,
+        singleEvents: true,
+        orderBy: 'startTime',
+      );
+
+      // Calculate total meeting hours
+      double totalHours = 0;
+      for (final event in events.items ?? []) {
+        if (event.start?.dateTime != null && event.end?.dateTime != null) {
+          final duration = event.end!.dateTime!.difference(event.start!.dateTime!);
+          totalHours += duration.inMinutes / 60;
+        }
+      }
+
+      return CalendarData(meetingLoad: totalHours.clamp(0.0, 16.0));
+    } catch (e) {
+      debugPrint('Error fetching today\'s meetings: $e');
+      return _getDemoMeetingLoad();
+    }
+  }
+
+  /// Get demo meeting load based on day of week
+  CalendarData _getDemoMeetingLoad() {
+    final now = DateTime.now();
+    double meetingLoad;
+
+    switch (now.weekday) {
+      case 1: // Monday
+        meetingLoad = 8.0;
+        break;
+      case 2: // Tuesday
+        meetingLoad = 7.0;
+        break;
+      case 3: // Wednesday
+        meetingLoad = 6.0;
+        break;
+      case 4: // Thursday
+        meetingLoad = 7.0;
+        break;
+      case 5: // Friday
+        meetingLoad = 5.0;
+        break;
+      default: // Weekend
+        meetingLoad = 2.0;
+    }
+
+    return CalendarData(meetingLoad: meetingLoad);
   }
 
   /// Connect to Google Calendar

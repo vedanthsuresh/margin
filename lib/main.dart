@@ -5,6 +5,7 @@ import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'services/feedback_service.dart';
 import 'services/wearable_service.dart';
+import 'services/calendar_service.dart';
 import 'services/preferences_service.dart';
 import 'providers/margin_provider.dart';
 
@@ -104,6 +105,7 @@ class DashboardScreenWrapper extends StatelessWidget {
     final apiService = ApiService();
     final feedbackService = FeedbackService();
     final wearableService = WearableService();
+    final calendarService = CalendarService();
     final preferencesService = PreferencesService();
 
     return MultiProvider(
@@ -113,6 +115,7 @@ class DashboardScreenWrapper extends StatelessWidget {
             apiService: apiService,
             feedbackService: feedbackService,
             wearableService: wearableService,
+            calendarService: calendarService,
             preferencesService: preferencesService,
           ),
         ),
@@ -132,6 +135,7 @@ class OnboardingScreenWrapper extends StatelessWidget {
     final apiService = ApiService();
     final feedbackService = FeedbackService();
     final wearableService = WearableService();
+    final calendarService = CalendarService();
 
     return MultiProvider(
       providers: [
@@ -141,6 +145,7 @@ class OnboardingScreenWrapper extends StatelessWidget {
             apiService: apiService,
             feedbackService: feedbackService,
             wearableService: wearableService,
+            calendarService: calendarService,
             preferencesService: preferencesService,
           ),
         ),

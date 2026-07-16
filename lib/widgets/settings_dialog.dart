@@ -282,7 +282,7 @@ class _DevWearableDataEditorState extends State<_DevWearableDataEditor> {
     return Consumer<MarginProvider>(
       builder: (context, provider, child) {
         // Don't show if loading or no data
-        if (provider.isLoading || provider.wearableData == null) {
+        if (provider.isLoading || provider.userInput == null) {
           return const Padding(
             padding: EdgeInsets.all(8.0),
             child: Text(
@@ -292,7 +292,7 @@ class _DevWearableDataEditorState extends State<_DevWearableDataEditor> {
           );
         }
 
-        final data = provider.wearableData!;
+        final data = provider.userInput!;
         return Column(
           children: [
             _DevSlider(

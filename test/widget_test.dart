@@ -5,6 +5,7 @@ import 'package:margin/providers/margin_provider.dart';
 import 'package:margin/services/api_service.dart';
 import 'package:margin/services/feedback_service.dart';
 import 'package:margin/services/wearable_service.dart';
+import 'package:margin/services/calendar_service.dart';
 import 'package:margin/services/preferences_service.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,7 @@ void main() {
               apiService: ApiService(),
               feedbackService: FeedbackService(),
               wearableService: WearableService(),
+              calendarService: CalendarService(),
               preferencesService: PreferencesService(),
             ),
           ),

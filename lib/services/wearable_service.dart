@@ -1,34 +1,33 @@
 import 'dart:async';
-import '../models/user_input.dart';
+import '../models/wearable_data.dart';
 
-/// Mock service for wearable device data
+/// Service for wearable device data
 /// In production, this would connect to Apple HealthKit, Google Fit, etc.
 class WearableService {
   // Mock data stream - simulates live updates from wearables
-  final _controller = StreamController<UserInput>.broadcast();
+  final _controller = StreamController<WearableData>.broadcast();
 
-  Stream<UserInput> get dataStream => _controller.stream;
+  Stream<WearableData> get dataStream => _controller.stream;
 
-  UserInput _currentData = _getMockData();
+  WearableData _currentData = _getMockData();
 
-  UserInput get currentData => _currentData;
+  WearableData get currentData => _currentData;
 
   /// Get current mock wearable data
-  UserInput getMockData() {
+  WearableData getMockData() {
     _currentData = _getMockData();
     _controller.add(_currentData);
     return _currentData;
   }
 
   /// Generate mock data simulating wearable readings
-  static UserInput _getMockData() {
+  static WearableData _getMockData() {
     final now = DateTime.now();
     final hour = now.hour;
 
     // Simulate realistic patterns based on time of day
     double sleep;
     double energy;
-    double meetingLoad;
 
     // Sleep: assumes user slept last night
     sleep = 7.0 + (now.weekday == 1 ? -1.0 : 0.0); // Less sleep on Mondays
@@ -46,41 +45,17 @@ class WearableService {
       energy = 4.0; // Night
     }
 
-    // Meeting load: based on day of week
-    switch (now.weekday) {
-      case 1: // Monday
-        meetingLoad = 8.0;
-        break;
-      case 2: // Tuesday
-        meetingLoad = 7.0;
-        break;
-      case 3: // Wednesday
-        meetingLoad = 6.0;
-        break;
-      case 4: // Thursday
-        meetingLoad = 7.0;
-        break;
-      case 5: // Friday
-        meetingLoad = 5.0;
-        break;
-      default: // Weekend
-        meetingLoad = 2.0;
-    }
-
     // Add some randomization for realism
     sleep += (now.millisecond % 10 - 5) / 10;
     energy += (now.millisecond % 10 - 5) / 10;
-    meetingLoad += (now.millisecond % 10 - 5) / 10;
 
     // Clamp values
     sleep = sleep.clamp(0.0, 12.0);
     energy = energy.clamp(1.0, 10.0);
-    meetingLoad = meetingLoad.clamp(0.0, 16.0);
 
-    return UserInput(
+    return WearableData(
       sleep: sleep,
       energy: energy,
-      meetingLoad: meetingLoad,
     );
   }
 

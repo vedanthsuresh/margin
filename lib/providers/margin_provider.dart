@@ -4,10 +4,13 @@ import '../models/margin_context.dart';
 import '../models/user_input.dart';
 import '../models/feedback.dart';
 import '../models/user_preferences.dart';
+import '../models/wearable_data.dart';
+import '../models/calendar_data.dart';
 import '../services/margin_service.dart';
 import '../services/api_service.dart';
 import '../services/feedback_service.dart';
 import '../services/wearable_service.dart';
+import '../services/calendar_service.dart';
 import '../services/preferences_service.dart';
 
 /// Main provider for Margin Score state management
@@ -15,11 +18,13 @@ class MarginProvider with ChangeNotifier {
   final ApiService _apiService;
   final FeedbackService _feedbackService;
   final WearableService _wearableService;
+  final CalendarService _calendarService;
   final PreferencesService _preferencesService;
 
   MarginContext? _context;
   MarginScore? _currentScore;
-  UserInput? _wearableData;
+  WearableData? _wearableData;
+  CalendarData? _calendarData;
   UserPreferences? _userPreferences;
   Map<String, DimensionValue>? _dimensions;
   bool _isLoading = false;
@@ -29,10 +34,12 @@ class MarginProvider with ChangeNotifier {
     required ApiService apiService,
     required FeedbackService feedbackService,
     required WearableService wearableService,
+    required CalendarService calendarService,
     required PreferencesService preferencesService,
   })  : _apiService = apiService,
         _feedbackService = feedbackService,
         _wearableService = wearableService,
+        _calendarService = calendarService,
         _preferencesService = preferencesService {
     _initialize();
     _listenToWearableUpdates();
@@ -70,6 +77,7 @@ class MarginProvider with ChangeNotifier {
       debugPrint('Initialization failed: $e');
       // Set fallback context so dimensions still work
       _context = _createFallbackContext();
+      await _loadCalendarData();
       _loadWearableData();
       _calculateScore();
       _updateDimensions();
@@ -184,6 +192,11 @@ class MarginProvider with ChangeNotifier {
     _wearableData = _wearableService.getMockData();
   }
 
+  /// Load data from calendar service
+  Future<void> _loadCalendarData() async {
+    _calendarData = await _calendarService.getTodayMeetingLoad();
+  }
+
   /// Listen to live updates from wearable
   void _listenToWearableUpdates() {
     _wearableService.dataStream.listen((data) {
@@ -196,18 +209,30 @@ class MarginProvider with ChangeNotifier {
 
   /// Calculate the current Margin Score
   void _calculateScore() {
-    if (_context == null || _wearableData == null) return;
+    if (_context == null || _wearableData == null || _calendarData == null) return;
+
+    // Compose UserInput from separate data sources
+    final userInput = UserInput(
+      wearableData: _wearableData!,
+      calendarData: _calendarData!,
+    );
 
     final service = MarginService(_context!);
-    _currentScore = service.calculateScore(_wearableData!);
+    _currentScore = service.calculateScore(userInput);
   }
 
   /// Update dimensions display
   void _updateDimensions() {
-    if (_context == null) return;
+    if (_context == null || _wearableData == null || _calendarData == null) return;
+
+    // Compose UserInput for dimensions service
+    final userInput = UserInput(
+      wearableData: _wearableData!,
+      calendarData: _calendarData!,
+    );
 
     final service = MarginService(_context!);
-    _dimensions = service.getCurrentDimensions(_wearableData);
+    _dimensions = service.getCurrentDimensions(userInput);
   }
 
   /// Refresh all data
@@ -221,6 +246,7 @@ class MarginProvider with ChangeNotifier {
       if (_context != null) {
         _context = _mergeContextWithPreferences(_context!, _userPreferences);
       }
+      await _loadCalendarData();
       _wearableService.simulateNewData();
       _calculateScore();
       _updateDimensions();
@@ -251,11 +277,12 @@ class MarginProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Update wearable data (DEV ONLY - for testing)
-  /// This allows developers to manually adjust the wearable data for testing
+  /// Update wearable and calendar data (DEV ONLY - for testing)
+  /// This allows developers to manually adjust the data for testing
   void updateWearableData(UserInput newData) {
     try {
-      _wearableData = newData;
+      _wearableData = newData.wearableData;
+      _calendarData = newData.calendarData;
       if (_context != null) {
         _calculateScore();
         _updateDimensions();
@@ -270,7 +297,22 @@ class MarginProvider with ChangeNotifier {
 
   // Getters
   MarginScore? get currentScore => _currentScore;
-  UserInput? get wearableData => _wearableData;
+
+  /// Get combined user input (for backwards compatibility)
+  UserInput? get userInput {
+    if (_wearableData == null || _calendarData == null) return null;
+    return UserInput(
+      wearableData: _wearableData!,
+      calendarData: _calendarData!,
+    );
+  }
+
+  /// Get wearable data only
+  WearableData? get wearableData => _wearableData;
+
+  /// Get calendar data only
+  CalendarData? get calendarData => _calendarData;
+
   Map<String, DimensionValue>? get dimensions => _dimensions;
   bool get isLoading => _isLoading;
   String? get error => _error;

@@ -1,62 +1,89 @@
-/// User Inputs - self-reported values that feed into Margin Score calculation
+import 'wearable_data.dart';
+import 'calendar_data.dart';
+
+/// UserInput - combines all data sources for Margin Score calculation
 class UserInput {
-  final double sleep; // Hours of sleep (0-12 for dev testing)
-  final double energy; // Energy level (1-10)
-  final double meetingLoad; // Meeting hours (0-16)
+  final WearableData wearableData;
+  final CalendarData calendarData;
 
   UserInput({
-    required this.sleep,
-    required this.energy,
-    required this.meetingLoad,
+    required this.wearableData,
+    required this.calendarData,
   });
 
-  /// Validate inputs are within acceptable ranges
-  bool get isValid {
-    return sleep >= 0 && sleep <= 12 &&
-           energy >= 1 && energy <= 10 &&
-           meetingLoad >= 0 && meetingLoad <= 16;
+  /// Convenience getter for sleep
+  double get sleep => wearableData.sleep;
+
+  /// Convenience getter for energy
+  double get energy => wearableData.energy;
+
+  /// Convenience getter for meeting load
+  double get meetingLoad => calendarData.meetingLoad;
+
+  /// Validate all inputs are within acceptable ranges
+  bool get isValid => wearableData.isValid && calendarData.isValid;
+
+  /// Get all validation errors
+  List<String> get validationErrors {
+    return [...wearableData.validationErrors, ...calendarData.validationErrors];
   }
 
-  /// Get validation errors
-  List<String> get validationErrors {
-    final errors = <String>[];
-    if (sleep < 0 || sleep > 12) {
-      errors.add('Sleep must be between 0-12 hours');
-    }
-    if (energy < 1 || energy > 10) {
-      errors.add('Energy must be between 1-10');
-    }
-    if (meetingLoad < 0 || meetingLoad > 16) {
-      errors.add('Meeting load must be between 0-16 hours');
-    }
-    return errors;
+  /// Create from individual values (for backwards compatibility)
+  factory UserInput.fromValues({
+    required double sleep,
+    required double energy,
+    required double meetingLoad,
+  }) {
+    return UserInput(
+      wearableData: WearableData(sleep: sleep, energy: energy),
+      calendarData: CalendarData(meetingLoad: meetingLoad),
+    );
   }
 
   UserInput copyWith({
+    WearableData? wearableData,
+    CalendarData? calendarData,
     double? sleep,
     double? energy,
     double? meetingLoad,
   }) {
     return UserInput(
-      sleep: sleep ?? this.sleep,
-      energy: energy ?? this.energy,
-      meetingLoad: meetingLoad ?? this.meetingLoad,
+      wearableData: wearableData ??
+          this.wearableData.copyWith(
+            sleep: sleep,
+            energy: energy,
+          ),
+      calendarData: calendarData ??
+          this.calendarData.copyWith(
+            meetingLoad: meetingLoad,
+          ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'sleep': sleep,
-      'energy': energy,
-      'meetingLoad': meetingLoad,
+      'wearableData': wearableData.toJson(),
+      'calendarData': calendarData.toJson(),
     };
   }
 
   factory UserInput.fromJson(Map<String, dynamic> json) {
     return UserInput(
-      sleep: (json['sleep'] as num?)?.toDouble() ?? 7.0,
-      energy: (json['energy'] as num?)?.toDouble() ?? 7.0,
-      meetingLoad: (json['meetingLoad'] as num?)?.toDouble() ?? 6.0,
+      wearableData: json['wearableData'] != null
+          ? WearableData.fromJson(json['wearableData'])
+          : WearableData(
+              sleep: (json['sleep'] as num?)?.toDouble() ?? 7.0,
+              energy: (json['energy'] as num?)?.toDouble() ?? 7.0,
+            ),
+      calendarData: json['calendarData'] != null
+          ? CalendarData.fromJson(json['calendarData'])
+          : CalendarData(
+              meetingLoad: (json['meetingLoad'] as num?)?.toDouble() ?? 6.0,
+            ),
     );
   }
+
+  @override
+  String toString() =>
+      'UserInput(wearable: $wearableData, calendar: $calendarData)';
 }

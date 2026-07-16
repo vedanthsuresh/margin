@@ -4,6 +4,7 @@ import '../providers/margin_provider.dart';
 import '../services/api_service.dart';
 import '../services/feedback_service.dart';
 import '../services/wearable_service.dart';
+import '../services/calendar_service.dart';
 import '../services/preferences_service.dart';
 import '../widgets/margin_score_display.dart';
 import '../widgets/dimensions_list.dart';
@@ -86,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: WearableDataDisplay(
-                    data: provider.wearableData,
+                    data: provider.userInput,
                   ),
                 ),
 
@@ -145,6 +146,7 @@ class DashboardScreenWrapper extends StatelessWidget {
     final apiService = ApiService();
     final feedbackService = FeedbackService();
     final wearableService = WearableService();
+    final calendarService = CalendarService();
     final preferencesService = Provider.of<PreferencesService>(context);
 
     return ChangeNotifierProvider(
@@ -152,6 +154,7 @@ class DashboardScreenWrapper extends StatelessWidget {
         apiService: apiService,
         feedbackService: feedbackService,
         wearableService: wearableService,
+        calendarService: calendarService,
         preferencesService: preferencesService,
       ),
       child: const DashboardScreen(),

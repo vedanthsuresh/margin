@@ -38,8 +38,9 @@ class MarginScore {
       sleepScore = 5; // Critical
     }
 
-    // Energy contribution: 5-40 points (1-10 scale)
-    final energyScore = (energy * 3.5) + 5;
+    // Energy contribution: 0-50 points (1-10 scale)
+    // Updated to allow reaching 100% with optimal inputs
+    final energyScore = energy * 5;
 
     // Meeting load penalty: 0 to -25 points (0-16h scale)
     // Low penalty for first 2 hours, then scales up

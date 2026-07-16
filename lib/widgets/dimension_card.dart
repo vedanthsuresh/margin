@@ -28,7 +28,7 @@ class _DimensionCardState extends State<DimensionCard> {
   Widget build(BuildContext context) {
     final value = widget.dimension.value;
     final description = widget.dimension.description;
-    final needsExpansion = description.length > 40;
+    final needsExpansion = description.length > 25;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _showFeedbackButton = true),

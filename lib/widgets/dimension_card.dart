@@ -22,164 +22,194 @@ class DimensionCard extends StatefulWidget {
 
 class _DimensionCardState extends State<DimensionCard> {
   bool _showFeedbackButton = false;
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     final value = widget.dimension.value;
-    final isAdjustment = _isAdjustment(value);
+    final description = widget.dimension.description;
+    final needsExpansion = description.length > 40;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _showFeedbackButton = true),
       onExit: (_) => setState(() => _showFeedbackButton = false),
-      child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: _getValueColor(value).withOpacity(0.2),
-            width: 1,
+      child: InkWell(
+        onTap: needsExpansion ? () => setState(() => _isExpanded = !_isExpanded) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: _getValueColor(value).withOpacity(0.2),
+              width: 1,
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _getValueColor(value).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _getValueColor(value).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _getIcon(value),
+                    color: _getValueColor(value),
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  _getIcon(value),
-                  color: _getValueColor(value),
-                  size: 20,
-                ),
-              ),
 
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-              // Name and value
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.dimension.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                // Name and value
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.dimension.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(value).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _getStatus(value),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: _getStatusColor(value),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(value).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _getStatus(value),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: _getStatusColor(value),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Tooltip(
-                            message: widget.dimension.description,
-                            child: Text(
-                              widget.dimension.description,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _isExpanded || !needsExpansion
+                                ? Text(
+                                    description,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    maxLines: _isExpanded ? null : 1,
+                                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                                  )
+                                : Text(
+                                    description,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                          ),
+                          if (needsExpansion && !_isExpanded)
+                            Text(
+                              '...',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Colors.grey.shade400,
+                                fontWeight: FontWeight.w600,
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
                           ),
+                          if (needsExpansion)
+                            Icon(
+                              _isExpanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 16,
+                              color: Colors.grey.shade400,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Value badge with status indicator
+                Row(
+                  children: [
+                    // Status indicator dot
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _getValueColor(value),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Value badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getValueColor(value).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _getValueColor(value).withOpacity(0.3),
+                          width: 1,
                         ),
-                      ],
+                      ),
+                      child: Text(
+                        _formatValue(value),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _getValueColor(value),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(width: 12),
-
-              // Value badge with status indicator
-              Row(
-                children: [
-                  // Status indicator dot
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _getValueColor(value),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                // Feedback button
+                if (_showFeedbackButton) ...[
                   const SizedBox(width: 8),
-                  // Value badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getValueColor(value).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _getValueColor(value).withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      _formatValue(value),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _getValueColor(value),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _showFeedbackDialog(context),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.feedback_outlined,
+                          size: 18,
+                          color: Colors.orange,
+                        ),
                       ),
                     ),
                   ),
                 ],
-              ),
-
-              // Feedback button
-              if (_showFeedbackButton) ...[
-                const SizedBox(width: 8),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _showFeedbackDialog(context),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.feedback_outlined,
-                        size: 18,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),

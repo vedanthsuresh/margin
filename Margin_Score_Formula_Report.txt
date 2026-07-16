@@ -1,0 +1,258 @@
+================================================================================
+                    MARGIN SCORE CALCULATION FORMULA
+================================================================================
+
+Version: 1.0.0
+Date: July 15, 2026
+Component: Margin Score Engine
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+The Margin Score is a 0-100 metric representing a user's real-time emotional 
+and mental capacity. It is calculated using a deterministic formula that 
+combines self-reported inputs with contextual enrichment factors.
+
+================================================================================
+HOW IT WORKS: THE BIG PICTURE
+================================================================================
+
+Think of the Margin Score like a weather forecast for your mental bandwidth. 
+Just as a weather report combines temperature, humidity, and wind to give you 
+a "feels like" temperature, the Margin Score combines multiple factors to give 
+you a "feels like" capacity reading.
+
+The calculation happens in two stages:
+
+  1. BASE SCORE: Calculated from your direct inputs
+  2. ENRICHED SCORE: Base score adjusted by contextual factors
+
+================================================================================
+THE FORMULA
+================================================================================
+
+STEP 1: CALCULATE BASE SCORE
+--------------------------------------------------------------------------------
+
+The base score comes from three user inputs:
+
++-------------+-------------+----------+--------------------------+
+| Input       | Range       | Weight   | Impact on Score          |
++-------------+-------------+----------+--------------------------+
+| Sleep Hours | 0-10        | 30%      | More sleep = higher score |
+| Energy Level| 1-10        | 40%      | Higher energy = higher   |
+| Meeting Load| 0-16        | 30%      | More meetings = lower     |
++-------------+-------------+----------+--------------------------+
+
+Base Score Formula:
+
+  base_score = (sleep_normalized × 0.30) + (energy × 0.40) - (meeting_load × 0.30)
+
+Where sleep_normalized converts 0-10 hours to a 0-100 scale (7-8 hours = optimal).
+
+STEP 2: APPLY CONTEXTUAL ADJUSTMENTS
+--------------------------------------------------------------------------------
+
+The base score is then adjusted by contextual factors:
+
+  enriched_score = base_score
+                    + day_factor
+                    + seasonal_factor
+                    + holiday_bonus (if applicable)
+                    - timezone_penalty (if applicable)
+                    - company_size_adjustment
+                    ± industry_comparison_delta
+                    ± sleep_impact_adjustment
+                    ± stress_adjustments
+                    ± work_life_penalties
+
+================================================================================
+EACH FACTOR EXPLAINED
+================================================================================
+
+1. DAY FACTOR
+--------------------------------------------------------------------------------
+Adjusts score based on day of week:
+
++-----------+------------------------------+
+| Day       | Adjustment                   |
++-----------+------------------------------+
+| Monday    | -3 (week catch-up fatigue)   |
+| Tuesday   | 0 (baseline)                 |
+| Wednesday | +2 (mid-week peak)           |
+| Thursday  | 0 (baseline)                 |
+| Friday    | -2 (week-end fatigue)        |
+| Saturday  | +5 (weekend buffer)          |
+| Sunday    | +3 (weekend preparation)     |
++-----------+------------------------------+
+
+Example: A base score of 70 on Monday becomes 67. On Wednesday, it becomes 72.
+
+2. SEASONAL FACTOR
+--------------------------------------------------------------------------------
+Adjusts score based on quarter of year:
+
++----------------+------------------------------+
+| Quarter        | Adjustment                   |
++----------------+------------------------------+
+| Q1 (Jan-Mar)   | -2 (post-holiday recovery)  |
+| Q2 (Apr-Jun)   | +2 (spring momentum)        |
+| Q3 (Jul-Sep)   | 0 (summer steady state)     |
+| Q4 (Oct-Dec)   | -5 (year-end crunch)        |
++----------------+------------------------------+
+
+3. HOLIDAY BONUS
+--------------------------------------------------------------------------------
+US Federal holidays provide a capacity boost. The system includes 2024 and 2025 
+holidays with "buffer days" - days immediately before/after the holiday when 
+the adjustment also applies.
+
+Major holiday adjustments:
+  • Thanksgiving:     +10 (2 buffer days)
+  • Christmas/New Year: +8 (1-2 buffer days)
+  • Independence Day:  +6 (1 buffer day)
+  • Memorial Day:     +5 (1 buffer day)
+  • Labor Day:        +4 (1 buffer day)
+
+4. TIMEZONE PENALTY
+--------------------------------------------------------------------------------
+Working across timezones reduces capacity:
+
++-------------------------------+----------+
+| Timezone Span                 | Penalty  |
++-------------------------------+----------+
+| Single timezone               | 0        |
+| Dual (US coasts)              | -3       |
+| Multi (3+ zones)              | -7       |
+| Global (APAC/EMEA/Americas)   | -10      |
++-------------------------------+----------+
+
+5. COMPANY SIZE ADJUSTMENT
+--------------------------------------------------------------------------------
+Organization size affects meeting load and bureaucracy:
+
++-------------------------+----------+
+| Company Size            | Adjustment|
++-------------------------+----------+
+| Startup                 | -3       |
+| Small (10-50)           | -2       |
+| Mid-market (50-500)     | 0        |
+| Enterprise (500+)       | -2       |
+| Mega corp (10K+)        | -4       |
++-------------------------+----------+
+
+6. INDUSTRY COMPARISON DELTA
+--------------------------------------------------------------------------------
+Your meeting load is compared to industry averages for your role. If you're 
+above average, your score decreases.
+
+Example roles included:
+  • Software Engineer: 6 avg meeting hours
+  • Product Manager: 12 avg meeting hours
+  • Executive: 15 avg meeting hours
+  • Freelancer: 4 avg meeting hours
+
+Formula: delta = your_meeting_hours - industry_average_hours
+
+7. SLEEP IMPACT ADJUSTMENT
+--------------------------------------------------------------------------------
+Sleep duration directly affects performance:
+
++---------------+------------------------------+
+| Hours Slept   | Adjustment                   |
++---------------+------------------------------+
+| 7-9 hours     | +5 (optimal)                 |
+| 6 or 10 hours | +2 (adequate)                |
+| 5 or 11 hours | -3 (deficit)                 |
+| 0-4 or 12+    | -10 (critical)               |
++---------------+------------------------------+
+
+8. STRESS INDICATORS
+--------------------------------------------------------------------------------
+Meeting patterns affect cognitive load:
+
+Stress factors applied:
+  • Back-to-back meetings (>3): alert triggered
+  • Context switching penalty: -2 per back-to-back meeting
+  • No lunch break: -5 penalty
+  • Well-distributed meetings: +2 bonus
+
+9. WORK-LIFE BALANCE PENALTIES
+--------------------------------------------------------------------------------
+Boundary violations significantly reduce capacity:
+
++----------------------------+----------+
+| Violation                  | Penalty  |
++----------------------------+----------+
+| After-hours communication  | -3       |
+| Weekend work               | -5       |
+| Late meeting (after 6pm)   | -2       |
+| Late meeting (after 8pm)   | -4       |
+| Early meeting (before 8am)| -2       |
+| Early meeting (before 7am)| -4       |
++----------------------------+----------+
+
+================================================================================
+COMPLETE CALCULATION EXAMPLE
+================================================================================
+
+User: Sarah, Software Engineer
+Date: Monday, November 18, 2024 (Q4, pre-Thanksgiving)
+
+STEP 1: USER INPUTS
+  • Sleep: 6 hours
+  • Energy: 7/10
+  • Meeting Load: 10 hours
+
+STEP 2: CALCULATE BASE SCORE
+  base = (60 × 0.30) + (70 × 0.40) - (62.5 × 0.30)
+  base = 18 + 28 - 18.75
+  base = 27.25
+
+STEP 3: APPLY ADJUSTMENTS
+  adjustments = day_factor (-3) + seasonal_factor (-5) 
+                + sleep_impact (+2) - industry_delta (-4)
+  adjustments = -3 - 5 + 2 - 4 = -10
+
+STEP 4: FINAL SCORE
+  final_score = 27.25 + (-10)
+  final_score = 17.25
+  final_score = 17 (rounded)
+
+Sarah's Margin Score: 17% — Depleted Capacity
+Color Zone: Red/Orange
+Response Mode: Friction Lock activated
+
+================================================================================
+SCORE RANGES & WHAT THEY MEAN
+================================================================================
+
++------------+-------------------+-------------+
+| Score Range| Capacity Level    | UI Color    |
++------------+-------------------+-------------+
+| 70-100     | High Capacity     | Green       |
+| 40-69      | Moderate Capacity | Yellow      |
+| 0-39       | Depleted          | Orange/Red  |
++------------+-------------------+-------------+
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+DETERMINISTIC DESIGN:
+  • The formula is entirely deterministic — same inputs always produce the same score
+  • No AI or machine learning is used in the calculation
+  • All contextual data comes from static JSON files served by the backend
+  • The calculation runs locally on the device (Flutter app)
+  • Only the AI response generation uses an LLM (Vertex AI/Gemini)
+
+WHY THIS DESIGN?
+  • Speed: Instant calculation without API latency
+  • Cost: No LLM token costs for score updates
+  • Predictability: Transparent, testable logic
+  • Offline capability: Works without internet
+
+================================================================================
+END OF REPORT
+================================================================================

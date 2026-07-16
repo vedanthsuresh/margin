@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Margin Context API Response",
+  "description": "Contextual data for Margin Score enrichment",
+  "type": "object",
+  "required": [
+    "day_factors",
+    "seasonal_factors",
+    "holidays_2024",
+    "industry_benchmarks",
+    "timezone_factors"
+  ],
+  "properties": {
+    "day_factors": {
+      "type": "object",
+      "description": "Day-of-week adjustments",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "adjustment": { "type": "integer" },
+          "reason": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "seasonal_factors": {
+      "type": "object",
+      "description": "Quarterly adjustments",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "adjustment": { "type": "integer" },
+          "reason": { "type": "string" },
+          "description": { "type": "string" },
+          "months": { "type": "array", "items": { "type": "integer" } }
+        }
+      }
+    },
+    "holidays_2024": {
+      "type": "array",
+      "description": "US Federal holidays",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "name": { "type": "string" },
+          "buffer_days": { "type": "integer" },
+          "adjustment": { "type": "integer" }
+        }
+      }
+    },
+    "industry_benchmarks": {
+      "type": "object",
+      "description": "Role-specific benchmarks",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "average_meeting_hours": { "type": "number" },
+          "average_focus_time": { "type": "number" },
+          "average_communications_load": { "type": "integer" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "timezone_factors": {
+      "type": "object",
+      "description": "Timezone span penalties",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "penalty": { "type": "integer" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "company_size_factors": {
+      "type": "object",
+      "description": "Organization size adjustments",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "adjustment": { "type": "integer" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "communication_overload_thresholds": {
+      "type": "object",
+      "description": "Communication load thresholds",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "min_messages_per_hour": { "type": "integer" },
+          "max_messages_per_hour": { "type": "integer" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "energy_patterns": {
+      "type": "object",
+      "description": "Chronotype energy patterns",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "peak_hours": { "type": "array", "items": { "type": "string" } },
+          "trough_hours": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "sleep_impact_factors": {
+      "type": "object",
+      "description": "Sleep duration impact factors",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "hours": { "type": "array", "items": { "type": "integer" } },
+          "adjustment": { "type": "integer" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "stress_indicators": {
+      "type": "object",
+      "description": "Meeting pattern stress factors",
+      "properties": {
+        "back_to_back_meetings_threshold": { "type": "integer" },
+        "context_switching_penalty_per_meeting": { "type": "integer" },
+        "lunch_break_importance": { "type": "integer" },
+        "no_break_day_penalty": { "type": "integer" },
+        "meeting_spread_bonus": { "type": "integer" },
+        "description": { "type": "string" }
+      }
+    },
+    "work_life_balance_signals": {
+      "type": "object",
+      "description": "Work-life boundary indicators",
+      "properties": {
+        "after_hours_communication_penalty": { "type": "integer" },
+        "weekend_work_penalty": { "type": "integer" },
+        "late_meeting_penalty": { "type": "object" },
+        "early_meeting_penalty": { "type": "object" }
+      }
+    }
+  }
+}

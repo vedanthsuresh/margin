@@ -1,0 +1,418 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2024-07-15",
+  "day_factors": {
+    "Monday": {
+      "adjustment": -3,
+      "reason": "Week start adjustment",
+      "description": "Monday catch-up typically increases cognitive load"
+    },
+    "Tuesday": {
+      "adjustment": 0,
+      "reason": "Baseline day",
+      "description": "Standard productivity day"
+    },
+    "Wednesday": {
+      "adjustment": 2,
+      "reason": "Mid-week stability",
+      "description": "Peak productivity day, slight buffer"
+    },
+    "Thursday": {
+      "adjustment": 0,
+      "reason": "Baseline day",
+      "description": "Standard productivity day"
+    },
+    "Friday": {
+      "adjustment": -2,
+      "reason": "Week-end fatigue",
+      "description": "End-of-week wrap-up reduces available margin"
+    },
+    "Saturday": {
+      "adjustment": 5,
+      "reason": "Weekend buffer",
+      "description": "Personal time, higher margin availability"
+    },
+    "Sunday": {
+      "adjustment": 3,
+      "reason": "Weekend preparation",
+      "description": "Sunday scaries reduce margin slightly"
+    }
+  },
+  "seasonal_factors": {
+    "Q1": {
+      "adjustment": -2,
+      "reason": "Post-holiday fatigue",
+      "description": "January recovery period, new year pressures",
+      "months": [1, 2, 3]
+    },
+    "Q2": {
+      "adjustment": 2,
+      "reason": "Spring momentum",
+      "description": "Seasonal energy increase, lighter workload",
+      "months": [4, 5, 6]
+    },
+    "Q3": {
+      "adjustment": 0,
+      "reason": "Summer steady state",
+      "description": "Typical vacation season, variable patterns",
+      "months": [7, 8, 9]
+    },
+    "Q4": {
+      "adjustment": -5,
+      "reason": "Year-end crunch",
+      "description": "Budget planning, performance reviews, holiday rush",
+      "months": [10, 11, 12]
+    }
+  },
+  "holidays_2024": [
+    {
+      "date": "2024-01-01",
+      "name": "New Year's Day",
+      "buffer_days": 1,
+      "adjustment": 8
+    },
+    {
+      "date": "2024-01-15",
+      "name": "Martin Luther King Jr. Day",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2024-02-19",
+      "name": "Presidents' Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2024-03-29",
+      "name": "Good Friday",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2024-05-27",
+      "name": "Memorial Day",
+      "buffer_days": 1,
+      "adjustment": 5
+    },
+    {
+      "date": "2024-06-19",
+      "name": "Juneteenth",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2024-07-04",
+      "name": "Independence Day",
+      "buffer_days": 1,
+      "adjustment": 6
+    },
+    {
+      "date": "2024-09-02",
+      "name": "Labor Day",
+      "buffer_days": 1,
+      "adjustment": 4
+    },
+    {
+      "date": "2024-10-14",
+      "name": "Indigenous Peoples' Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2024-11-11",
+      "name": "Veterans Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2024-11-28",
+      "name": "Thanksgiving Day",
+      "buffer_days": 2,
+      "adjustment": 10
+    },
+    {
+      "date": "2024-12-25",
+      "name": "Christmas Day",
+      "buffer_days": 2,
+      "adjustment": 8
+    }
+  ],
+  "holidays_2025": [
+    {
+      "date": "2025-01-01",
+      "name": "New Year's Day",
+      "buffer_days": 1,
+      "adjustment": 8
+    },
+    {
+      "date": "2025-01-20",
+      "name": "Martin Luther King Jr. Day",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2025-02-17",
+      "name": "Presidents' Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2025-04-18",
+      "name": "Good Friday",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2025-05-26",
+      "name": "Memorial Day",
+      "buffer_days": 1,
+      "adjustment": 5
+    },
+    {
+      "date": "2025-06-19",
+      "name": "Juneteenth",
+      "buffer_days": 0,
+      "adjustment": 3
+    },
+    {
+      "date": "2025-07-04",
+      "name": "Independence Day",
+      "buffer_days": 1,
+      "adjustment": 6
+    },
+    {
+      "date": "2025-09-01",
+      "name": "Labor Day",
+      "buffer_days": 1,
+      "adjustment": 4
+    },
+    {
+      "date": "2025-10-13",
+      "name": "Indigenous Peoples' Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2025-11-11",
+      "name": "Veterans Day",
+      "buffer_days": 0,
+      "adjustment": 2
+    },
+    {
+      "date": "2025-11-27",
+      "name": "Thanksgiving Day",
+      "buffer_days": 2,
+      "adjustment": 10
+    },
+    {
+      "date": "2025-12-25",
+      "name": "Christmas Day",
+      "buffer_days": 2,
+      "adjustment": 8
+    }
+  ],
+  "industry_benchmarks": {
+    "software_engineer": {
+      "average_meeting_hours": 6.0,
+      "average_focus_time": 5.5,
+      "average_communications_load": 15,
+      "description": "Tech industry benchmarks"
+    },
+    "product_manager": {
+      "average_meeting_hours": 12.0,
+      "average_focus_time": 2.5,
+      "average_communications_load": 35,
+      "description": "Product management role"
+    },
+    "engineering_manager": {
+      "average_meeting_hours": 10.0,
+      "average_focus_time": 3.0,
+      "average_communications_load": 30,
+      "description": "Engineering leadership role"
+    },
+    "designer": {
+      "average_meeting_hours": 5.0,
+      "average_focus_time": 6.0,
+      "average_communications_load": 12,
+      "description": "Design/UX role"
+    },
+    "sales": {
+      "average_meeting_hours": 8.0,
+      "average_focus_time": 4.0,
+      "average_communications_load": 40,
+      "description": "Sales/customer-facing role"
+    },
+    "marketing": {
+      "average_meeting_hours": 7.0,
+      "average_focus_time": 4.5,
+      "average_communications_load": 25,
+      "description": "Marketing role"
+    },
+    "executive": {
+      "average_meeting_hours": 15.0,
+      "average_focus_time": 1.5,
+      "average_communications_load": 50,
+      "description": "C-level/Executive role"
+    },
+    "hr": {
+      "average_meeting_hours": 9.0,
+      "average_focus_time": 3.5,
+      "average_communications_load": 30,
+      "description": "Human Resources role"
+    },
+    "finance": {
+      "average_meeting_hours": 7.0,
+      "average_focus_time": 5.0,
+      "average_communications_load": 20,
+      "description": "Finance/Accounting role"
+    },
+    "consultant": {
+      "average_meeting_hours": 14.0,
+      "average_focus_time": 2.0,
+      "average_communications_load": 45,
+      "description": "Client consulting role"
+    },
+    "freelancer": {
+      "average_meeting_hours": 4.0,
+      "average_focus_time": 7.0,
+      "average_communications_load": 20,
+      "description": "Independent contractor"
+    },
+    "student": {
+      "average_meeting_hours": 6.0,
+      "average_focus_time": 6.0,
+      "average_communications_load": 10,
+      "description": "Full-time student"
+    }
+  },
+  "timezone_factors": {
+    "single_timezone": {
+      "penalty": 0,
+      "description": "Working in single timezone"
+    },
+    "dual_timezone": {
+      "penalty": -3,
+      "description": "Working across 2 timezones (e.g., US coasts)"
+    },
+    "multi_timezone": {
+      "penalty": -7,
+      "description": "Working across 3+ timezones or continents"
+    },
+    "global_team": {
+      "penalty": -10,
+      "description": "Working across APAC, EMEA, Americas"
+    }
+  },
+  "company_size_factors": {
+    "startup": {
+      "adjustment": -3,
+      "description": "Startup environment, higher volatility"
+    },
+    "small_business": {
+      "adjustment": -2,
+      "description": "Small business (10-50 employees)"
+    },
+    "mid_market": {
+      "adjustment": 0,
+      "description": "Mid-market company (50-500 employees)"
+    },
+    "enterprise": {
+      "adjustment": -2,
+      "description": "Enterprise (500+ employees), more meetings"
+    },
+    "mega_corp": {
+      "adjustment": -4,
+      "description": "Large corporation (10000+ employees), bureaucracy overhead"
+    }
+  },
+  "communication_overload_thresholds": {
+    "low": {
+      "max_messages_per_hour": 5,
+      "description": "Normal communication flow"
+    },
+    "moderate": {
+      "min_messages_per_hour": 6,
+      "max_messages_per_hour": 15,
+      "description": "Elevated but manageable"
+    },
+    "high": {
+      "min_messages_per_hour": 16,
+      "max_messages_per_hour": 30,
+      "description": "Communication overload zone"
+    },
+    "severe": {
+      "min_messages_per_hour": 31,
+      "description": "Severe communication overload"
+    }
+  },
+  "energy_patterns": {
+    "morning_person": {
+      "peak_hours": ["08:00", "09:00", "10:00", "11:00"],
+      "trough_hours": ["15:00", "16:00", "17:00"],
+      "description": "Peak energy in morning hours"
+    },
+    "afternoon_person": {
+      "peak_hours": ["14:00", "15:00", "16:00"],
+      "trough_hours": ["09:00", "10:00"],
+      "description": "Peak energy in afternoon"
+    },
+    "evening_person": {
+      "peak_hours": ["17:00", "18:00", "19:00", "20:00"],
+      "trough_hours": ["09:00", "10:00", "11:00"],
+      "description": "Peak energy in evening hours"
+    },
+    "consistent": {
+      "peak_hours": ["10:00", "11:00", "14:00", "15:00"],
+      "trough_hours": ["13:00", "17:00"],
+      "description": "Steady energy throughout day"
+    }
+  },
+  "sleep_impact_factors": {
+    "optimal": {
+      "hours": [7, 8, 9],
+      "adjustment": 5,
+      "description": "Optimal sleep for peak performance"
+    },
+    "adequate": {
+      "hours": [6, 10],
+      "adjustment": 2,
+      "description": "Adequate but not optimal"
+    },
+    "suboptimal": {
+      "hours": [5, 11],
+      "adjustment": -3,
+      "description": "Sleep deficit begins"
+    },
+    "critical": {
+      "hours": [0, 1, 2, 3, 4],
+      "adjustment": -10,
+      "description": "Critical sleep deprivation"
+    },
+    "oversleep": {
+      "hours": [12, 13, 14, 15],
+      "adjustment": -2,
+      "description": "Oversleeping - may cause grogginess"
+    }
+  },
+  "stress_indicators": {
+    "back_to_back_meetings_threshold": 3,
+    "context_switching_penalty_per_meeting": -2,
+    "lunch_break_importance": 3,
+    "no_break_day_penalty": -5,
+    "meeting_spread_bonus": 2,
+    "description": "Factors affecting cognitive load from meeting patterns"
+  },
+  "work_life_balance_signals": {
+    "after_hours_communication_penalty": -3,
+    "weekend_work_penalty": -5,
+    "late_meeting_penalty": {
+      "after_6pm": -2,
+      "after_8pm": -4
+    },
+    "early_meeting_penalty": {
+      "before_8am": -2,
+      "before_7am": -4
+    }
+  }
+}

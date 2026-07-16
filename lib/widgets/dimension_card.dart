@@ -230,6 +230,26 @@ class _DimensionCardState extends State<DimensionCard> {
   }
 
   IconData _getIcon(String value) {
+    // First, check by dimension ID for specific icons
+    switch (widget.id) {
+      case 'meeting_load':
+        return Icons.event_rounded;
+      case 'timezone_factor':
+        return Icons.public;
+      case 'company_size':
+        return Icons.business;
+      case 'stress_indicators':
+        return Icons.psychology_rounded;
+      case 'work_life_balance':
+        return Icons.balance_rounded;
+      case 'day_factor':
+        return Icons.today_rounded;
+      case 'seasonal_factor':
+        return Icons.calendar_month_rounded;
+      case 'holiday_factor':
+        return Icons.celebration_rounded;
+    }
+
     // Handle sleep impact quality prefixes
     if (value.contains(':')) {
       final parts = value.split(':');

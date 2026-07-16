@@ -271,6 +271,13 @@ class MarginService {
         description: _context.companySizeFactors[_context.companySize]?.description ?? '',
         category: DimensionCategory.professional,
       ),
+      'meeting_load': DimensionValue(
+        id: 'meeting_load',
+        name: 'Meeting Load',
+        value: '${userInput?.meetingLoad.toStringAsFixed(1) ?? '0.0'}h',
+        description: 'Hours of meetings today',
+        category: DimensionCategory.professional,
+      ),
       'sleep_impact': DimensionValue(
         id: 'sleep_impact',
         name: 'Sleep Impact',

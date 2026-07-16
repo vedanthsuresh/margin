@@ -100,16 +100,6 @@ class WearableDataDisplay extends StatelessWidget {
                     description: 'Current level',
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    label: 'Meetings',
-                    value: '${data!.meetingLoad.toStringAsFixed(1)}h',
-                    icon: Icons.event,
-                    color: Colors.red,
-                    description: 'Today',
-                  ),
-                ),
               ],
             ),
           ],

@@ -192,6 +192,34 @@ class _DimensionCardState extends State<DimensionCard> {
   }
 
   String _getStatus(String value) {
+    // Handle sleep impact quality prefixes
+    if (value.contains(':')) {
+      final parts = value.split(':');
+      if (parts.length >= 2) {
+        final quality = parts[0];
+        switch (quality) {
+          case 'OPTIMAL':
+          case 'ADEQUATE':
+            return 'Bonus';
+          case 'SUBOPTIMAL':
+          case 'OVERSLEEP':
+          case 'CRITICAL':
+            return 'Penalty';
+        }
+      }
+    }
+
+    // Handle meeting load (values like "6.0h")
+    if (value.endsWith('h')) {
+      final numStr = value.substring(0, value.length - 1);
+      final numValue = double.tryParse(numStr);
+      if (numValue != null) {
+        if (numValue > 8) return 'High';
+        if (numValue > 4) return 'Moderate';
+        return 'Low';
+      }
+    }
+
     final numValue = double.tryParse(value);
     if (numValue == null) return 'Varies';
 
@@ -218,6 +246,17 @@ class _DimensionCardState extends State<DimensionCard> {
           case 'CRITICAL':
             return Colors.red.shade700;
         }
+      }
+    }
+
+    // Handle meeting load (values like "6.0h")
+    if (value.endsWith('h')) {
+      final numStr = value.substring(0, value.length - 1);
+      final numValue = double.tryParse(numStr);
+      if (numValue != null) {
+        if (numValue > 8) return Colors.red.shade700;
+        if (numValue > 4) return Colors.orange.shade600;
+        return Colors.green.shade600;
       }
     }
 

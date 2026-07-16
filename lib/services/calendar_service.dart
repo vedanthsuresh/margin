@@ -16,7 +16,8 @@ class CalendarService {
   static const _storage = FlutterSecureStorage();
   static const _accessTokenKey = 'google_access_token';
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  // Only initialize GoogleSignIn if not in demo mode
+  final GoogleSignIn? _googleSignIn = _kDemoMode ? null : GoogleSignIn(
     scopes: [
       calendar.CalendarApi.calendarReadonlyScope,
     ],
@@ -109,6 +110,11 @@ class CalendarService {
       _cachedPatterns = _generateDemoPatterns();
       debugPrint('📅 Calendar connected (DEMO MODE)');
       return true;
+    }
+
+    if (_googleSignIn == null) {
+      debugPrint('GoogleSignIn not initialized');
+      return false;
     }
 
     try {
@@ -347,7 +353,7 @@ class CalendarService {
 
   /// Sign out and clear connection
   Future<void> disconnect() async {
-    await _googleSignIn.signOut();
+    await _googleSignIn?.signOut();
     await _storage.delete(key: _accessTokenKey);
     _isConnected = false;
     _calendarApi = null;

@@ -96,13 +96,17 @@ class _DimensionCardState extends State<DimensionCard> {
                         ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(
-                            widget.dimension.description,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                          child: Tooltip(
+                            message: widget.dimension.description,
+                            child: Text(
+                              widget.dimension.description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

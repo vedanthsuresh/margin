@@ -231,6 +231,22 @@ class MarginService {
     }
   }
 
+  String _getMeetingPenalty(double meetingLoad) {
+    // Calculate penalty using same formula as margin_score.dart
+    double meetingPenalty;
+    if (meetingLoad <= 2) {
+      meetingPenalty = meetingLoad * 1.5;
+    } else if (meetingLoad <= 6) {
+      meetingPenalty = 3 + (meetingLoad - 2) * 3;
+    } else {
+      meetingPenalty = 15 + (meetingLoad - 6) * 2.5;
+    }
+
+    // Return as formatted penalty value
+    final penaltyValue = meetingPenalty.toStringAsFixed(1);
+    return '-$penaltyValue';
+  }
+
   /// Get current dimension values for display
   Map<String, DimensionValue> getCurrentDimensions([UserInput? userInput]) {
     final now = DateTime.now();
@@ -274,8 +290,8 @@ class MarginService {
       'meeting_load': DimensionValue(
         id: 'meeting_load',
         name: 'Meeting Load',
-        value: '${userInput?.meetingLoad.toStringAsFixed(1) ?? '0.0'}h',
-        description: 'Hours of meetings today',
+        value: _getMeetingPenalty(userInput?.meetingLoad ?? 0),
+        description: 'Hours: ${userInput?.meetingLoad.toStringAsFixed(1) ?? '0.0'}h',
         category: DimensionCategory.professional,
       ),
       'sleep_impact': DimensionValue(

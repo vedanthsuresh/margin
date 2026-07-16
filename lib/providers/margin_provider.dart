@@ -67,6 +67,7 @@ class MarginProvider with ChangeNotifier {
       // Merge context with user preferences (handles null preferences gracefully)
       _context = _mergeContextWithPreferences(backendContext, _userPreferences);
 
+      await _loadCalendarData();
       _loadWearableData();
       _calculateScore();
       _updateDimensions();

@@ -6,12 +6,14 @@ import '../models/feedback.dart';
 import '../models/user_preferences.dart';
 import '../models/wearable_data.dart';
 import '../models/calendar_data.dart';
+import '../models/boundary_responses.dart';
 import '../services/margin_service.dart';
 import '../services/api_service.dart';
 import '../services/feedback_service.dart';
 import '../services/wearable_service.dart';
 import '../services/calendar_service.dart';
 import '../services/preferences_service.dart';
+import '../services/ai_response_service.dart';
 
 /// Main provider for Margin Score state management
 class MarginProvider with ChangeNotifier {
@@ -20,6 +22,7 @@ class MarginProvider with ChangeNotifier {
   final WearableService _wearableService;
   final CalendarService _calendarService;
   final PreferencesService _preferencesService;
+  final AIResponseService _aiService;
 
   MarginContext? _context;
   MarginScore? _currentScore;
@@ -36,11 +39,13 @@ class MarginProvider with ChangeNotifier {
     required WearableService wearableService,
     required CalendarService calendarService,
     required PreferencesService preferencesService,
+    required AIResponseService aiService,
   })  : _apiService = apiService,
         _feedbackService = feedbackService,
         _wearableService = wearableService,
         _calendarService = calendarService,
-        _preferencesService = preferencesService {
+        _preferencesService = preferencesService,
+        _aiService = aiService {
     _initialize();
     _listenToWearableUpdates();
   }
@@ -318,4 +323,22 @@ class MarginProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   MarginContext? get context => _context;
+
+  /// Generate AI-powered boundary responses
+  Future<BoundaryResponses> generateBoundaryResponses({
+    required String text,
+    required String relationship,
+  }) async {
+    final score = _currentScore?.finalScore ?? 50;
+    final level = _currentScore?.capacityLevel ?? CapacityLevel.moderate;
+
+    debugPrint('Generating boundary responses: score=$score, level=$level, relationship=$relationship');
+
+    return await _aiService.generateResponses(
+      incomingText: text,
+      relationship: relationship,
+      marginScore: score,
+      capacityLevel: level,
+    );
+  }
 }

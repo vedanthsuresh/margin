@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../providers/margin_provider.dart';
 import '../services/api_service.dart';
 import '../services/feedback_service.dart';
 import '../services/wearable_service.dart';
 import '../services/calendar_service.dart';
 import '../services/preferences_service.dart';
+import '../services/ai_response_service.dart';
 import '../widgets/margin_score_display.dart';
 import '../widgets/dimensions_list.dart';
 import '../widgets/wearable_data_display.dart';
@@ -42,6 +44,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             tooltip: 'Settings',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.pushNamed(context, '/sandbox');
+        },
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Generate Response'),
+        tooltip: 'Generate boundary response',
       ),
       body: Consumer<MarginProvider>(
         builder: (context, provider, child) {
@@ -148,6 +158,9 @@ class DashboardScreenWrapper extends StatelessWidget {
     final wearableService = WearableService();
     final calendarService = CalendarService();
     final preferencesService = Provider.of<PreferencesService>(context);
+    // Load API key from .env file, fallback to empty for demo mode
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    final aiService = AIResponseService(apiKey: apiKey);
 
     return ChangeNotifierProvider(
       create: (_) => MarginProvider(
@@ -156,6 +169,7 @@ class DashboardScreenWrapper extends StatelessWidget {
         wearableService: wearableService,
         calendarService: calendarService,
         preferencesService: preferencesService,
+        aiService: aiService,
       ),
       child: const DashboardScreen(),
     );

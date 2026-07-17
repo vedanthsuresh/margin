@@ -1,15 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/sandbox_screen.dart';
 import 'services/api_service.dart';
 import 'services/feedback_service.dart';
 import 'services/wearable_service.dart';
 import 'services/calendar_service.dart';
 import 'services/preferences_service.dart';
+import 'services/ai_response_service.dart';
 import 'providers/margin_provider.dart';
 
-void main() {
+void main() async {
+  // Load .env file (gracefully handle if file doesn't exist)
+  try {
+    await dotenv.load(fileName: ".env");
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      print('Note: GEMINI_API_KEY not found in .env, using demo mode');
+    } else {
+      print('✅ GEMINI_API_KEY loaded from .env (${apiKey.length} chars)');
+    }
+  } catch (e) {
+    // .env file not found - will use demo mode with mock AI responses
+    print('Note: .env file not found, using demo mode with mock AI responses: $e');
+  }
   runApp(const MarginApp());
 }
 
@@ -32,6 +48,7 @@ class MarginApp extends StatelessWidget {
       home: const AppEntryPoint(),
       routes: {
         '/dashboard': (context) => const DashboardScreenWrapper(),
+        '/sandbox': (context) => const SandboxScreenWrapper(),
       },
     );
   }
@@ -107,6 +124,9 @@ class DashboardScreenWrapper extends StatelessWidget {
     final wearableService = WearableService();
     final calendarService = CalendarService();
     final preferencesService = PreferencesService();
+    // Load API key from .env file, fallback to empty for demo mode
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    final aiService = AIResponseService(apiKey: apiKey);
 
     return MultiProvider(
       providers: [
@@ -117,6 +137,7 @@ class DashboardScreenWrapper extends StatelessWidget {
             wearableService: wearableService,
             calendarService: calendarService,
             preferencesService: preferencesService,
+            aiService: aiService,
           ),
         ),
       ],
@@ -136,6 +157,9 @@ class OnboardingScreenWrapper extends StatelessWidget {
     final feedbackService = FeedbackService();
     final wearableService = WearableService();
     final calendarService = CalendarService();
+    // Load API key from .env file, fallback to empty for demo mode
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    final aiService = AIResponseService(apiKey: apiKey);
 
     return MultiProvider(
       providers: [
@@ -147,10 +171,44 @@ class OnboardingScreenWrapper extends StatelessWidget {
             wearableService: wearableService,
             calendarService: calendarService,
             preferencesService: preferencesService,
+            aiService: aiService,
           ),
         ),
       ],
       child: OnboardingScreen(preferencesService: preferencesService),
+    );
+  }
+}
+
+/// Wrapper for sandbox with providers
+class SandboxScreenWrapper extends StatelessWidget {
+  const SandboxScreenWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final apiService = ApiService();
+    final feedbackService = FeedbackService();
+    final wearableService = WearableService();
+    final calendarService = CalendarService();
+    final preferencesService = PreferencesService();
+    // Load API key from .env file, fallback to empty for demo mode
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    final aiService = AIResponseService(apiKey: apiKey);
+
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MarginProvider>(
+          create: (_) => MarginProvider(
+            apiService: apiService,
+            feedbackService: feedbackService,
+            wearableService: wearableService,
+            calendarService: calendarService,
+            preferencesService: preferencesService,
+            aiService: aiService,
+          ),
+        ),
+      ],
+      child: const SandboxScreen(),
     );
   }
 }

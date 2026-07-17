@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:provider/provider.dart';
 import '../models/user_preferences.dart';
+import '../models/margin_context.dart';
 import '../services/preferences_service.dart';
 import '../services/calendar_service.dart';
+import '../services/ai_classification_service.dart';
 import '../widgets/onboarding_widgets.dart';
 
 /// Onboarding flow for collecting user preferences
@@ -30,8 +31,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _selectedChronotype;
   bool? _calendarConnected;
 
+  // Track "other" text input
+  String? _otherRoleText;
+  String? _otherCompanySizeText;
+
   // Calendar service
   final CalendarService _calendarService = CalendarService();
+
+  // AI classification service
+  final AIClassificationService _aiService = const AIClassificationService();
 
   // Manual work-life answers (if calendar declined)
   bool? _worksLateHours;
@@ -39,6 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Loading state
   bool _isConnectingCalendar = false;
+  bool _isClassifying = false;
 
   @override
   void dispose() {
@@ -102,21 +111,90 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
+    // Create initial preferences with "other" values
     final preferences = UserPreferences(
       userRole: _selectedRole ?? 'software_engineer',
       companySize: _selectedCompanySize ?? 'mid_market',
       timezoneSpan: _selectedTimezoneSpan ?? 'single_timezone',
       chronotype: _selectedChronotype,
+      otherRole: _selectedRole == 'other' ? _otherRoleText : null,
+      otherCompanySize: _selectedCompanySize == 'other' ? _otherCompanySizeText : null,
       calendarConnected: _calendarConnected ?? false,
       worksLateHours: _worksLateHours,
       worksWeekends: _worksWeekends,
     );
 
-    await widget.preferencesService.savePreferences(preferences);
+    // Only classify if "other" was selected for either field
+    final needsClassification =
+        (_selectedRole == 'other' && _otherRoleText != null && _otherRoleText!.isNotEmpty) ||
+        (_selectedCompanySize == 'other' && _otherCompanySizeText != null && _otherCompanySizeText!.isNotEmpty);
+
+    if (needsClassification) {
+      setState(() => _isClassifying = true);
+
+      try {
+        // Load the margin context (for benchmarks and factors)
+        // For now, we'll use a simple approach - in production, this would load from the provider
+        final context = MarginContext.fromJson(
+          _getDefaultMarginContext(),
+        );
+
+        // Run AI classification
+        final classification = await _aiService.classifyUserPreferences(preferences, context);
+
+        // Update preferences with AI-classified values
+        final updatedPreferences = preferences.copyWith(
+          aiClassifiedRole: classification.roleResult?.matchedRoleKey,
+          aiClassifiedCompanySize: classification.companySizeResult?.matchedSizeKey,
+          aiClassifiedCompanySizeAdjustment: classification.companySizeResult?.adjustment,
+        );
+
+        await widget.preferencesService.savePreferences(updatedPreferences);
+      } catch (e) {
+        // If classification fails, save without AI values (will use defaults)
+        debugPrint('AI classification failed: $e');
+        await widget.preferencesService.savePreferences(preferences);
+      } finally {
+        setState(() => _isClassifying = false);
+      }
+    } else {
+      await widget.preferencesService.savePreferences(preferences);
+    }
 
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/dashboard');
     }
+  }
+
+  /// Get default margin context for classification
+  /// In production, this would be loaded from the backend/provider
+  Map<String, dynamic> _getDefaultMarginContext() {
+    // Simplified version - in production, load from backend-data/static/margin-context.json
+    return {
+      'version': '1.0.0',
+      'last_updated': '2024-07-15',
+      'industry_benchmarks': {
+        'software_engineer': {'average_meeting_hours': 6.0, 'average_focus_time': 5.5, 'average_communications_load': 15, 'description': 'Tech industry benchmarks'},
+        'product_manager': {'average_meeting_hours': 12.0, 'average_focus_time': 2.5, 'average_communications_load': 35, 'description': 'Product management role'},
+        'engineering_manager': {'average_meeting_hours': 10.0, 'average_focus_time': 3.0, 'average_communications_load': 30, 'description': 'Engineering leadership role'},
+        'designer': {'average_meeting_hours': 5.0, 'average_focus_time': 6.0, 'average_communications_load': 12, 'description': 'Design/UX role'},
+        'sales': {'average_meeting_hours': 8.0, 'average_focus_time': 4.0, 'average_communications_load': 40, 'description': 'Sales/customer-facing role'},
+        'marketing': {'average_meeting_hours': 7.0, 'average_focus_time': 4.5, 'average_communications_load': 25, 'description': 'Marketing role'},
+        'executive': {'average_meeting_hours': 15.0, 'average_focus_time': 1.5, 'average_communications_load': 50, 'description': 'C-level/Executive role'},
+        'hr': {'average_meeting_hours': 9.0, 'average_focus_time': 3.5, 'average_communications_load': 30, 'description': 'Human Resources role'},
+        'finance': {'average_meeting_hours': 7.0, 'average_focus_time': 5.0, 'average_communications_load': 20, 'description': 'Finance/Accounting role'},
+        'consultant': {'average_meeting_hours': 14.0, 'average_focus_time': 2.0, 'average_communications_load': 45, 'description': 'Client consulting role'},
+        'freelancer': {'average_meeting_hours': 4.0, 'average_focus_time': 7.0, 'average_communications_load': 20, 'description': 'Independent contractor'},
+        'student': {'average_meeting_hours': 6.0, 'average_focus_time': 6.0, 'average_communications_load': 10, 'description': 'Full-time student'},
+      },
+      'company_size_factors': {
+        'startup': {'adjustment': -3, 'description': 'Startup environment, higher volatility'},
+        'small_business': {'adjustment': -2, 'description': 'Small business (10-50 employees)'},
+        'mid_market': {'adjustment': 0, 'description': 'Mid-market company (50-500 employees)'},
+        'enterprise': {'adjustment': -2, 'description': 'Enterprise (500+ employees), more meetings'},
+        'mega_corp': {'adjustment': -4, 'description': 'Large corporation (10000+ employees), bureaucracy overhead'},
+      },
+    };
   }
 
   List<Widget> get _pages => [
@@ -129,6 +207,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       onOptionSelected: (value) {
         setState(() => _selectedRole = value);
       },
+      otherText: _otherRoleText,
+      onOtherTextChanged: (value) {
+        setState(() => _otherRoleText = value);
+      },
     ),
     _QuestionPage(
       question: 'What\'s your company size?',
@@ -137,6 +219,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       selectedOption: _selectedCompanySize,
       onOptionSelected: (value) {
         setState(() => _selectedCompanySize = value);
+      },
+      otherText: _otherCompanySizeText,
+      onOtherTextChanged: (value) {
+        setState(() => _otherCompanySizeText = value);
       },
     ),
     _QuestionPage(
@@ -176,6 +262,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _CompletionPage(
       onComplete: _completeOnboarding,
+      isLoading: _isClassifying,
     ),
   ];
 
@@ -259,8 +346,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_currentPage == _pages.length - 1) return true; // Completion page
 
     // Required questions
-    if (_currentPage == 1) return _selectedRole != null;
-    if (_currentPage == 2) return _selectedCompanySize != null;
+    if (_currentPage == 1) {
+      // Role question - if "other" is selected, require text input
+      if (_selectedRole == 'other') {
+        return _otherRoleText != null && _otherRoleText!.trim().isNotEmpty;
+      }
+      return _selectedRole != null;
+    }
+    if (_currentPage == 2) {
+      // Company size question - if "other" is selected, require text input
+      if (_selectedCompanySize == 'other') {
+        return _otherCompanySizeText != null && _otherCompanySizeText!.trim().isNotEmpty;
+      }
+      return _selectedCompanySize != null;
+    }
     if (_currentPage == 3) return _selectedTimezoneSpan != null;
     if (_currentPage == 4) return true; // Chronotype is optional
 
@@ -327,13 +426,15 @@ class _WelcomePage extends StatelessWidget {
 }
 
 // Question Page
-class _QuestionPage extends StatelessWidget {
+class _QuestionPage extends StatefulWidget {
   final String question;
   final String subtitle;
   final Map<String, String> options;
   final String? selectedOption;
   final Function(String) onOptionSelected;
   final bool isOptional;
+  final String? otherText;
+  final Function(String?)? onOtherTextChanged;
 
   const _QuestionPage({
     required this.question,
@@ -342,17 +443,70 @@ class _QuestionPage extends StatelessWidget {
     required this.selectedOption,
     required this.onOptionSelected,
     this.isOptional = false,
+    this.otherText,
+    this.onOtherTextChanged,
   });
 
   @override
+  State<_QuestionPage> createState() => _QuestionPageState();
+}
+
+class _QuestionPageState extends State<_QuestionPage> {
+  final TextEditingController _otherTextController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.otherText != null) {
+      _otherTextController.text = widget.otherText!;
+    }
+    _otherTextController.addListener(() {
+      widget.onOtherTextChanged?.call(_otherTextController.text);
+    });
+
+    // Auto-focus after a delay when "other" is selected
+    if (widget.selectedOption == 'other') {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_QuestionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Request focus when "other" is newly selected
+    if (widget.selectedOption == 'other' && oldWidget.selectedOption != 'other') {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _otherTextController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showOtherInput = widget.selectedOption == 'other';
+    final hasOtherOption = widget.options.containsKey('other');
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
       child: Column(
         children: [
           const SizedBox(height: 20),
           Text(
-            question,
+            widget.question,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -361,7 +515,7 @@ class _QuestionPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            subtitle,
+            widget.subtitle,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -369,22 +523,54 @@ class _QuestionPage extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          ...options.entries.map((entry) {
-            final isSelected = selectedOption == entry.key;
+          ...widget.options.entries.map((entry) {
+            final isSelected = widget.selectedOption == entry.key;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _OptionCard(
                 label: entry.value,
                 isSelected: isSelected,
-                onTap: () => onOptionSelected(entry.key),
+                onTap: () => widget.onOptionSelected(entry.key),
               ),
             );
           }),
-          if (isOptional)
+          if (showOtherInput && hasOtherOption) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _otherTextController,
+              focusNode: _focusNode,
+              keyboardType: TextInputType.text,
+              textCapitalization: TextCapitalization.words,
+              enableInteractiveSelection: true,
+              decoration: InputDecoration(
+                hintText: _getHintForQuestion(widget.question),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              maxLines: null,
+              minLines: 2,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _getHelperTextForQuestion(widget.question),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          if (widget.isOptional)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: TextButton(
-                onPressed: () => onOptionSelected(''),
+                onPressed: () => widget.onOptionSelected(''),
                 child: Text(
                   'Skip',
                   style: TextStyle(color: Colors.grey.shade500),
@@ -395,6 +581,24 @@ class _QuestionPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getHintForQuestion(String question) {
+    if (question.contains('role')) {
+      return 'e.g., "Data Scientist", "Teacher", "Lawyer"';
+    } else if (question.contains('company size')) {
+      return 'e.g., "50 employees", "Fortune 500", "Solo practice"';
+    }
+    return 'Please specify';
+  }
+
+  String _getHelperTextForQuestion(String question) {
+    if (question.contains('role')) {
+      return 'AI will analyze your role to determine impact on your capacity score';
+    } else if (question.contains('company size')) {
+      return 'AI will analyze your organization size to determine impact on your capacity score';
+    }
+    return '';
   }
 }
 
@@ -637,8 +841,12 @@ class _ToggleCard extends StatelessWidget {
 // Completion Page
 class _CompletionPage extends StatelessWidget {
   final VoidCallback onComplete;
+  final bool isLoading;
 
-  const _CompletionPage({required this.onComplete});
+  const _CompletionPage({
+    required this.onComplete,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -647,49 +855,71 @@ class _CompletionPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check,
-              size: 48,
-              color: Colors.green,
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'You\'re all set!',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your personalized Margin Score is ready',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onComplete,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
+          if (isLoading) ...[
+            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            const Text(
+              'Analyzing your responses...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
               ),
-              child: const Text('See My Score'),
+              textAlign: TextAlign.center,
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              'AI is determining the impact of your custom selections',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ] else ...[
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check,
+                size: 48,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'You\'re all set!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your personalized Margin Score is ready',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onComplete,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('See My Score'),
+              ),
+            ),
+          ],
         ],
       ),
     );

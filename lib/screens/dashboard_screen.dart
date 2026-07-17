@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../providers/margin_provider.dart';
 import '../services/api_service.dart';
 import '../services/feedback_service.dart';
@@ -8,6 +7,7 @@ import '../services/wearable_service.dart';
 import '../services/calendar_service.dart';
 import '../services/preferences_service.dart';
 import '../services/ai_response_service.dart';
+import '../services/ai_feedback_analysis_service.dart';
 import '../widgets/margin_score_display.dart';
 import '../widgets/dimensions_list.dart';
 import '../widgets/wearable_data_display.dart';
@@ -154,13 +154,14 @@ class DashboardScreenWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final apiService = ApiService();
-    final feedbackService = FeedbackService();
+    final aiFeedbackAnalysisService = AIFeedbackAnalysisService();
+    final feedbackService = FeedbackService(
+      aiAnalysisService: aiFeedbackAnalysisService,
+    );
     final wearableService = WearableService();
     final calendarService = CalendarService();
     final preferencesService = Provider.of<PreferencesService>(context);
-    // Load API key from .env file, fallback to empty for demo mode
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    final aiService = AIResponseService(apiKey: apiKey);
+    final aiService = AIResponseService();
 
     return ChangeNotifierProvider(
       create: (_) => MarginProvider(

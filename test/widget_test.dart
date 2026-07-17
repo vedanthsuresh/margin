@@ -23,7 +23,7 @@ void main() {
               wearableService: WearableService(),
               calendarService: CalendarService(),
               preferencesService: PreferencesService(),
-              aiService: AIResponseService(apiKey: ''),
+              aiService: AIResponseService(),
             ),
           ),
         ],

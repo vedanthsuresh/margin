@@ -17,8 +17,15 @@ class MarginContext {
   String? chronotype;
   List<int> userMeetingHours;
 
+  // AI-classified values from "other" inputs
+  int? aiClassifiedCompanySizeAdjustment;
+
   // Work-life patterns from calendar analysis or manual input
   WorkLifePatterns? workLifePatterns;
+
+  // User-specific dimension overrides (from feedback)
+  // Maps dimension_id to the override value the user specified
+  Map<String, double>? dimensionOverrides;
 
   MarginContext({
     required this.version,
@@ -35,7 +42,9 @@ class MarginContext {
     this.companySize = 'mid_market',
     this.chronotype = 'consistent',
     this.userMeetingHours = const [6, 6, 6, 6, 6], // Mon-Fri
+    this.aiClassifiedCompanySizeAdjustment,
     this.workLifePatterns,
+    this.dimensionOverrides,
   });
 
   /// Parse from JSON (from backend API)
@@ -112,15 +121,68 @@ class MarginContext {
     );
   }
 
+  /// Create a copy of this context with updated fields
+  MarginContext copyWith({
+    String? version,
+    String? lastUpdated,
+    Map<String, DayFactor>? dayFactors,
+    Map<String, SeasonalFactor>? seasonalFactors,
+    List<Holiday>? holidays,
+    Map<String, IndustryBenchmark>? industryBenchmarks,
+    Map<String, TimezoneFactor>? timezoneFactors,
+    Map<String, CompanySizeFactor>? companySizeFactors,
+    SleepImpactFactor? sleepImpactFactors,
+    String? userRole,
+    String? timezoneSpan,
+    String? companySize,
+    String? chronotype,
+    List<int>? userMeetingHours,
+    int? aiClassifiedCompanySizeAdjustment,
+    WorkLifePatterns? workLifePatterns,
+    Map<String, double>? dimensionOverrides,
+  }) {
+    return MarginContext(
+      version: version ?? this.version,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      dayFactors: dayFactors ?? this.dayFactors,
+      seasonalFactors: seasonalFactors ?? this.seasonalFactors,
+      holidays: holidays ?? this.holidays,
+      industryBenchmarks: industryBenchmarks ?? this.industryBenchmarks,
+      timezoneFactors: timezoneFactors ?? this.timezoneFactors,
+      companySizeFactors: companySizeFactors ?? this.companySizeFactors,
+      sleepImpactFactors: sleepImpactFactors ?? this.sleepImpactFactors,
+      userRole: userRole ?? this.userRole,
+      timezoneSpan: timezoneSpan ?? this.timezoneSpan,
+      companySize: companySize ?? this.companySize,
+      chronotype: chronotype ?? this.chronotype,
+      userMeetingHours: userMeetingHours ?? this.userMeetingHours,
+      aiClassifiedCompanySizeAdjustment: aiClassifiedCompanySizeAdjustment ?? this.aiClassifiedCompanySizeAdjustment,
+      workLifePatterns: workLifePatterns ?? this.workLifePatterns,
+      dimensionOverrides: dimensionOverrides ?? this.dimensionOverrides,
+    );
+  }
+
   /// Get day factor for a given weekday (1=Monday, 7=Sunday)
+  /// Checks dimensionOverrides first for user-adjusted values
   double getDayFactor(int weekday) {
+    // Check if user has overridden this dimension
+    if (dimensionOverrides != null && dimensionOverrides!.containsKey('day_factor')) {
+      return dimensionOverrides!['day_factor']!;
+    }
+    // Otherwise use the standard lookup
     final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     final dayName = dayNames[weekday - 1];
     return dayFactors[dayName]?.adjustment.toDouble() ?? 0.0;
   }
 
   /// Get seasonal factor for a given month (1-12)
+  /// Checks dimensionOverrides first for user-adjusted values
   double getSeasonalFactor(int month) {
+    // Check if user has overridden this dimension
+    if (dimensionOverrides != null && dimensionOverrides!.containsKey('seasonal_factor')) {
+      return dimensionOverrides!['seasonal_factor']!;
+    }
+    // Otherwise use the standard lookup
     final quarter = ((month - 1) ~/ 3) + 1;
     final seasonKey = 'Q$quarter';
     return seasonalFactors[seasonKey]?.adjustment.toDouble() ?? 0.0;
@@ -137,12 +199,30 @@ class MarginContext {
   }
 
   /// Get timezone penalty based on user's timezone span
+  /// Checks dimensionOverrides first for user-adjusted values
   double getTimezonePenalty() {
+    // Check if user has overridden this dimension
+    if (dimensionOverrides != null && dimensionOverrides!.containsKey('timezone_factor')) {
+      return dimensionOverrides!['timezone_factor']!;
+    }
+    // Otherwise use the standard lookup
     return timezoneFactors[timezoneSpan]?.penalty.toDouble() ?? 0.0;
   }
 
   /// Get company size adjustment
+  ///
+  /// Checks dimensionOverrides first, then AI-classified adjustment,
+  /// otherwise looks up from the standard factors map.
   double getCompanySizeAdjustment() {
+    // Check if user has overridden this dimension
+    if (dimensionOverrides != null && dimensionOverrides!.containsKey('company_size')) {
+      return dimensionOverrides!['company_size']!;
+    }
+    // Use AI-classified adjustment if available
+    if (aiClassifiedCompanySizeAdjustment != null) {
+      return aiClassifiedCompanySizeAdjustment!.toDouble();
+    }
+    // Otherwise, use standard lookup
     return companySizeFactors[companySize]?.adjustment.toDouble() ?? 0.0;
   }
 

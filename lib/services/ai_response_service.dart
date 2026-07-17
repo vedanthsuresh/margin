@@ -1,45 +1,22 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+// ignore: implementation_imports
 import '../models/boundary_responses.dart';
 import '../models/margin_score.dart';
+
+import 'package:firebase_ai/firebase_ai.dart';
 
 /// Service for generating AI-powered boundary responses using Google Gemini
 ///
 /// DEMO/HACKATHON NOTE: This service uses client-side API keys for demo purposes.
 /// For production, move AI calls to a backend server to secure API keys.
 class AIResponseService {
-  final String apiKey;
-  late final GenerativeModel _model;
+  final model = FirebaseAI.googleAI().generativeModel(
+    model: 'gemini-3.5-flash',
+  );
 
   /// Last generated responses for debugging/retry
   BoundaryResponses? _lastResponses;
-
-  /// Whether the service is initialized and ready
-  bool get isInitialized => apiKey.isNotEmpty;
-
-  AIResponseService({required this.apiKey}) {
-    if (apiKey.isEmpty) {
-      debugPrint('AIResponseService: No API key provided. Using mock responses.');
-      return;
-    }
-
-    try {
-      _model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        ),
-      );
-      debugPrint('AIResponseService: Initialized with Gemini 1.5 Flash');
-    } catch (e) {
-      debugPrint('AIResponseService: Failed to initialize: $e');
-    }
-  }
 
   /// Generate boundary responses based on user context
   ///
@@ -54,24 +31,25 @@ class AIResponseService {
     required int marginScore,
     required CapacityLevel capacityLevel,
   }) async {
-    // Use mock responses if no API key or in debug mode
-    if (!isInitialized) {
-      return _getMockResponses(incomingText, relationship, capacityLevel);
-    }
-
     try {
+      // Add a random variety hint to encourage different responses each time
+      final varietyHint = _getVarietyHint();
+
       final prompt = _buildPrompt(
         incomingText,
         relationship,
         marginScore,
         capacityLevel,
+        varietyHint,
       );
 
       debugPrint('AIResponseService: Sending prompt to Gemini...');
 
-      final response = await _model.generateContent(
-        [Content.text(prompt)],
-      );
+      // Using google_gemini_ai package API
+      // To generate text output, call generateContent with the text input
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      debugPrint('AIResponseService: Response received: ${response.text}');
 
       final responseText = response.text;
       if (responseText == null || responseText.isEmpty) {
@@ -86,9 +64,10 @@ class AIResponseService {
         final jsonData = jsonDecode(jsonText) as Map<String, dynamic>;
         final responses = BoundaryResponses.fromJson(jsonData);
         _lastResponses = responses;
+        debugPrint("success! Generated AI responses");
         return responses;
       } catch (e) {
-        debugPrint('AIResponseService: Failed to parse JSON: $e');
+        debugPrint("failure! JSON parsing error: $e");
         debugPrint('AIResponseService: Raw response: $responseText');
         return _getMockResponses(incomingText, relationship, capacityLevel);
       }
@@ -104,34 +83,83 @@ class AIResponseService {
     String relationship,
     int marginScore,
     CapacityLevel capacityLevel,
+    String varietyHint,
   ) {
     final capacityDescription = _getCapacityDescription(capacityLevel);
     final responseGuidance = _getResponseGuidance(capacityLevel);
+    final relationshipContext = _getRelationshipContext(relationship);
 
     return '''You are Margin, a proactive psychological bodyguard that helps users set healthy boundaries while maintaining relationships.
 
-CONTEXT:
-- User's current Margin Score: $marginScore/100
+USER CONTEXT:
+- Current Margin Score: $marginScore/100
 - Capacity Level: $capacityDescription
-- Relationship to sender: $relationship
-- Incoming request: "$incomingText"
+- Relationship to sender: $relationship ($relationshipContext)
+
+INCOMING REQUEST:
+"$incomingText"
+
+VARIETY GUIDANCE: $varietyHint
+
+CRITICAL REQUIREMENTS:
+1. EVERY response must directly reference the specific request above - use concrete details from what they said
+2. VARY YOUR RESPONSES - Do NOT use the same phrases repeatedly. Each generation should feel fresh and different from previous ones.
+3. Use natural, conversational language - avoid template filler and generic phrases
+4. Match the tone to the relationship (formal for boss, casual for friend/family, professional for peer)
+5. Responses should feel like they were written by a real person in this specific moment
 
 RESPONSE STRATEGY:
 $responseGuidance
 
-Generate 4 distinct response options. Each should be:
-- Professional yet authentic
-- Clear and direct (no fluff)
-- Appropriate for the relationship type
-- Reflective of the user's current capacity
+IMPORTANT: Generate UNIQUE responses each time. Vary your:
+- Opening phrases (instead of always starting with "Thanks for..." or "I'd like to...")
+- Sentence structure and length
+- Specific wording and vocabulary
+- Level of formality within the appropriate range for the relationship
+
+Generate 4 distinct, authentic response options. Each must:
+- Acknowledge the specific request using varied language
+- Include relevant details from the request where appropriate
+- Sound contextual and freshly written, not templated
 
 Return ONLY valid JSON in this exact format:
 {
-  "politeDecline": "Full response text here",
-  "softCompromise": "Full response text here",
-  "reschedule": "Full response text here",
-  "acceptRequest": "Full response text here"
+  "politeDecline": "Full, contextual response text here",
+  "softCompromise": "Full, contextual response text here",
+  "reschedule": "Full, contextual response text here",
+  "acceptRequest": "Full, contextual response text here"
 }''';
+  }
+
+  /// Get context-specific guidance for relationship type
+  String _getRelationshipContext(String relationship) {
+    switch (relationship.toLowerCase()) {
+      case 'boss':
+        return 'formal/power dynamic - respect authority while protecting boundaries';
+      case 'peer':
+        return 'professional equality - collaborative but firm';
+      case 'friend':
+        return 'personal/casual - warmth valued, honesty essential';
+      case 'family':
+        return 'personal/emotional - boundaries may be harder, gentle but clear';
+      default:
+        return 'professional setting';
+    }
+  }
+
+  /// Get a random variety hint to encourage different responses each time
+  String _getVarietyHint() {
+    final hints = [
+      'Try varying your opening phrases - use different ways to acknowledge the request.',
+      'Experiment with different sentence lengths and structures for variety.',
+      'Use varied vocabulary - avoid repeating the same words across responses.',
+      'Mix up your tone within the appropriate range - sometimes more direct, sometimes more explanatory.',
+      'Consider different ways to phrase similar concepts.',
+      'Vary how you transition between ideas in your responses.',
+      'Try different closing phrases - not always the same sign-off.',
+      'Adjust your level of detail - sometimes more concise, sometimes more explanatory.',
+    ];
+    return hints[DateTime.now().millisecondsSinceEpoch % hints.length];
   }
 
   /// Get human-readable capacity description
@@ -200,21 +228,196 @@ Return ONLY valid JSON in this exact format:
     CapacityLevel capacityLevel,
   ) {
     final isDepleted = capacityLevel == CapacityLevel.depleted;
+    final greeting = _getGreeting(relationship);
+    final relationshipTone = _getRelationshipTone(relationship);
+
+    // Extract key elements from the request for personalization
+    String requestRef = 'this request';
+    if (incomingText.toLowerCase().contains('project')) {
+      requestRef = 'this project';
+    }
+    if (incomingText.toLowerCase().contains('meeting')) {
+      requestRef = 'this meeting';
+    }
+    if (incomingText.toLowerCase().contains('deadline')) {
+      requestRef = 'this deadline';
+    }
+    if (incomingText.toLowerCase().contains('help') ||
+        incomingText.toLowerCase().contains('assist')) {
+      requestRef = 'this';
+    }
 
     return BoundaryResponses(
-      politeDecline: isDepleted
-          ? 'I need to decline this request. My current bandwidth won\'t allow me to give this the attention it deserves.'
-          : 'Thanks for thinking of me! I won\'t be able to take this on right now, but please keep me in mind for future opportunities.',
-      softCompromise: isDepleted
-          ? 'I can\'t take this on directly, but I have some templates/resources from a similar project that might help. Would you like me to share those?'
-          : 'I can\'t commit to the full scope, but I could help with [specific component] or review the approach when you\'re ready.',
-      reschedule: isDepleted
-          ? 'My schedule is fully packed this week. I won\'t be able to suggest alternative times that would work for this timeline.'
-          : 'This week isn\'t ideal for me. Would next week work? I have availability on Tuesday afternoon or Thursday morning.',
-      acceptRequest: isDepleted
-          ? '⚠️ BURNOUT RISK: Your capacity is at ${capacityLevel.label}. Accepting this may impact your wellbeing.\n\nIf you must proceed, consider: "I can take this on, but I\'ll need to deprioritize [other commitment] to do so."'
-          : 'Happy to help! I\'ll get started on this right away and aim to have something to you by [reasonable deadline based on scope].',
+      politeDecline: _buildPersonalizedDecline(
+        incomingText,
+        relationship,
+        isDepleted,
+        greeting,
+        relationshipTone,
+        requestRef,
+      ),
+      softCompromise: _buildPersonalizedCompromise(
+        incomingText,
+        relationship,
+        isDepleted,
+        greeting,
+        relationshipTone,
+        requestRef,
+      ),
+      reschedule: _buildPersonalizedReschedule(
+        incomingText,
+        relationship,
+        isDepleted,
+        greeting,
+        relationshipTone,
+        requestRef,
+      ),
+      acceptRequest: _buildPersonalizedAccept(
+        incomingText,
+        relationship,
+        isDepleted,
+        capacityLevel,
+        greeting,
+        relationshipTone,
+        requestRef,
+      ),
     );
+  }
+
+  /// Get appropriate greeting based on relationship
+  String _getGreeting(String relationship) {
+    switch (relationship.toLowerCase()) {
+      case 'boss':
+        return '';
+      case 'peer':
+        return 'Hi there,';
+      case 'friend':
+        return 'Hey!';
+      case 'family':
+        return 'Hi,';
+      default:
+        return '';
+    }
+  }
+
+  /// Get tone indicator based on relationship
+  String _getRelationshipTone(String relationship) {
+    switch (relationship.toLowerCase()) {
+      case 'boss':
+        return 'formal';
+      case 'peer':
+        return 'professional';
+      case 'friend':
+        return 'casual';
+      case 'family':
+        return 'warm';
+      default:
+        return 'professional';
+    }
+  }
+
+  /// Build personalized decline response
+  String _buildPersonalizedDecline(
+    String incomingText,
+    String relationship,
+    bool isDepleted,
+    String greeting,
+    String tone,
+    String requestRef,
+  ) {
+    final baseDecline = isDepleted
+        ? 'I need to be upfront - I\'m currently at capacity and wouldn\'t be able to give $requestRef the attention it deserves.'
+        : '$greeting Thanks for reaching out about $requestRef! I won\'t be able to take this on right now.';
+
+    final contextAddition = _getContextualAddition(incomingText, tone);
+    return '$baseDecline $contextAddition';
+  }
+
+  /// Build personalized compromise response
+  String _buildPersonalizedCompromise(
+    String incomingText,
+    String relationship,
+    bool isDepleted,
+    String greeting,
+    String tone,
+    String requestRef,
+  ) {
+    final baseCompromise = isDepleted
+        ? '$greeting I can\'t take $requestRef on directly right now.'
+        : '$greeting I can\'t commit to the full scope of $requestRef.';
+
+    final offer = isDepleted
+        ? 'However, I do have some templates and resources from similar work that might save you time. Want me to share those?'
+        : 'That said, I could help with a specific piece or review the approach when you\'re further along. Let me know what would be most helpful.';
+
+    return '$baseCompromise $offer';
+  }
+
+  /// Build personalized reschedule response
+  String _buildPersonalizedReschedule(
+    String incomingText,
+    String relationship,
+    bool isDepleted,
+    String greeting,
+    String tone,
+    String requestRef,
+  ) {
+    if (isDepleted) {
+      return '$greeting I looked at my schedule and this week is fully booked. I wouldn\'t be able to give $requestRef the time it needs in the current timeline. Can we revisit this when things calm down?';
+    }
+
+    final timingSuggestion = incomingText.toLowerCase().contains('week')
+        ? 'Would early next week work? I have some bandwidth then.'
+        : 'This week isn\'t ideal timing-wise. Would next week work better?';
+
+    return '$greeting Thanks for thinking of me for $requestRef! $timingSuggestion I want to make sure I can give this proper attention.';
+  }
+
+  /// Build personalized accept response
+  String _buildPersonalizedAccept(
+    String incomingText,
+    String relationship,
+    bool isDepleted,
+    CapacityLevel capacityLevel,
+    String greeting,
+    String tone,
+    String requestRef,
+  ) {
+    if (isDepleted) {
+      return '⚠️ BURNOUT WARNING: Your capacity is critically low (${capacityLevel.label}).\n\nIf you must accept, consider: "$greeting I can take on $requestRef, but given my current bandwidth, I\'ll need to adjust expectations on [other commitment] to make this work. Can we discuss scope?"';
+    }
+
+    final enthusiasm = tone == 'casual'
+        ? 'Happy to help!'
+        : 'I\'d be glad to take this on.';
+    final timeline =
+        incomingText.toLowerCase().contains('deadline') ||
+            incomingText.toLowerCase().contains('friday')
+        ? 'I\'ll review the requirements and get back to you with a realistic timeline.'
+        : 'I\'ll get started and keep you posted on progress.';
+
+    return '$greeting $enthusiasm $timeline';
+  }
+
+  /// Get contextual addition based on request content and tone
+  String _getContextualAddition(String incomingText, String tone) {
+    final lower = incomingText.toLowerCase();
+
+    if (lower.contains('deadline') ||
+        lower.contains('asap') ||
+        lower.contains('urgent')) {
+      return tone == 'formal'
+          ? 'Given the timeline, I want to ensure you find someone who can give this proper attention.'
+          : 'With the timeline you mentioned, I want to make sure you get the help you need promptly.';
+    }
+
+    if (lower.contains('project') || lower.contains('long-term')) {
+      return 'Please keep me in mind for future collaborations though!';
+    }
+
+    return tone == 'casual'
+        ? 'Hope you find someone who can help!'
+        : 'Please reach out if there\'s anything else I can assist with.';
   }
 
   /// Get the last generated responses (for debugging)

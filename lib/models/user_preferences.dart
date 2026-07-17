@@ -5,6 +5,15 @@ class UserPreferences {
   final String timezoneSpan;
   final String? chronotype;
 
+  // "Other" field values for role and company size
+  final String? otherRole;
+  final String? otherCompanySize;
+
+  // AI-classified values from "other" inputs
+  final String? aiClassifiedRole;
+  final String? aiClassifiedCompanySize;
+  final int? aiClassifiedCompanySizeAdjustment;
+
   // Calendar and work-life
   final bool calendarConnected;
   final bool? worksLateHours;
@@ -17,6 +26,11 @@ class UserPreferences {
     required this.companySize,
     required this.timezoneSpan,
     this.chronotype,
+    this.otherRole,
+    this.otherCompanySize,
+    this.aiClassifiedRole,
+    this.aiClassifiedCompanySize,
+    this.aiClassifiedCompanySizeAdjustment,
     this.calendarConnected = false,
     this.worksLateHours,
     this.worksWeekends,
@@ -30,6 +44,11 @@ class UserPreferences {
       'companySize': companySize,
       'timezoneSpan': timezoneSpan,
       'chronotype': chronotype,
+      'otherRole': otherRole,
+      'otherCompanySize': otherCompanySize,
+      'aiClassifiedRole': aiClassifiedRole,
+      'aiClassifiedCompanySize': aiClassifiedCompanySize,
+      'aiClassifiedCompanySizeAdjustment': aiClassifiedCompanySizeAdjustment,
       'calendarConnected': calendarConnected,
       'worksLateHours': worksLateHours,
       'worksWeekends': worksWeekends,
@@ -44,6 +63,11 @@ class UserPreferences {
       companySize: json['companySize'] ?? 'mid_market',
       timezoneSpan: json['timezoneSpan'] ?? 'single_timezone',
       chronotype: json['chronotype'],
+      otherRole: json['otherRole'],
+      otherCompanySize: json['otherCompanySize'],
+      aiClassifiedRole: json['aiClassifiedRole'],
+      aiClassifiedCompanySize: json['aiClassifiedCompanySize'],
+      aiClassifiedCompanySizeAdjustment: json['aiClassifiedCompanySizeAdjustment'],
       calendarConnected: json['calendarConnected'] ?? false,
       worksLateHours: json['worksLateHours'],
       worksWeekends: json['worksWeekends'],
@@ -69,6 +93,7 @@ class UserPreferences {
     'consultant': 'Consultant',
     'freelancer': 'Freelancer',
     'student': 'Student',
+    'other': 'Other',
   };
 
   /// Available company size options
@@ -78,6 +103,7 @@ class UserPreferences {
     'mid_market': 'Mid-Market (50-500 employees)',
     'enterprise': 'Enterprise (500+ employees)',
     'mega_corp': 'Mega Corporation (10K+ employees)',
+    'other': 'Other',
   };
 
   /// Available timezone span options
@@ -122,6 +148,11 @@ class UserPreferences {
     String? companySize,
     String? timezoneSpan,
     String? chronotype,
+    String? otherRole,
+    String? otherCompanySize,
+    String? aiClassifiedRole,
+    String? aiClassifiedCompanySize,
+    int? aiClassifiedCompanySizeAdjustment,
     DateTime? completedAt,
   }) {
     return UserPreferences(
@@ -129,6 +160,11 @@ class UserPreferences {
       companySize: companySize ?? this.companySize,
       timezoneSpan: timezoneSpan ?? this.timezoneSpan,
       chronotype: chronotype ?? this.chronotype,
+      otherRole: otherRole ?? this.otherRole,
+      otherCompanySize: otherCompanySize ?? this.otherCompanySize,
+      aiClassifiedRole: aiClassifiedRole ?? this.aiClassifiedRole,
+      aiClassifiedCompanySize: aiClassifiedCompanySize ?? this.aiClassifiedCompanySize,
+      aiClassifiedCompanySizeAdjustment: aiClassifiedCompanySizeAdjustment ?? this.aiClassifiedCompanySizeAdjustment,
       completedAt: completedAt ?? this.completedAt,
     );
   }

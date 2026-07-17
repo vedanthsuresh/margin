@@ -18,7 +18,6 @@ class MarginScoreDisplay extends StatelessWidget {
         }
 
         final color = _getScoreColor(score.capacityLevel);
-        final colorName = score.colorName;
 
         return Container(
           width: double.infinity,

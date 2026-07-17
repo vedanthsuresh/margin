@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_preferences.dart';
 
@@ -6,6 +7,7 @@ import '../models/user_preferences.dart';
 class PreferencesService {
   static const String _preferencesKey = 'user_preferences';
   static const String _onboardingCompletedKey = 'onboarding_completed';
+  static const String _dimensionOverridesKey = 'dimension_overrides';
 
   /// Save user preferences to local storage
   Future<void> savePreferences(UserPreferences preferences) async {
@@ -28,6 +30,40 @@ class PreferencesService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Save dimension overrides to local storage
+  Future<void> saveDimensionOverrides(Map<String, double> overrides) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = jsonEncode(overrides);
+    await prefs.setString(_dimensionOverridesKey, jsonString);
+    debugPrint('💾 Saved dimension overrides: $overrides');
+  }
+
+  /// Load dimension overrides from local storage
+  Future<Map<String, double>> loadDimensionOverrides() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_dimensionOverridesKey);
+
+    if (jsonString == null) return {};
+
+    try {
+      final Map<String, dynamic> data = jsonDecode(jsonString) as Map<String, dynamic>;
+      final overrides = data.map<String, double>((key, value) =>
+        MapEntry(key, (value is num) ? value.toDouble() : double.tryParse(value.toString()) ?? 0.0));
+      debugPrint('📥 Loaded dimension overrides: $overrides');
+      return overrides;
+    } catch (e) {
+      debugPrint('⚠️ Failed to load dimension overrides: $e');
+      return {};
+    }
+  }
+
+  /// Clear dimension overrides (for testing or reset)
+  Future<void> clearDimensionOverrides() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_dimensionOverridesKey);
+    debugPrint('🗑️ Cleared dimension overrides');
   }
 
   /// Check if onboarding has been completed

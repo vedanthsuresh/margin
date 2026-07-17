@@ -56,10 +56,12 @@ dependencies:
   flutter_secure_storage: ^9.2.2
 
   # Google Generative AI for boundary responses
-  google_generative_ai: ^0.4.5
+  google_gemini_ai: ^1.0.1
 
   # Environment variables
   flutter_dotenv: ^5.1.0
+  firebase_ai: ^3.14.1
+  firebase_app_check: ^0.4.5+2
 
 dev_dependencies:
   flutter_test:

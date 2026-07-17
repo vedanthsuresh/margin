@@ -6,7 +6,7 @@ class FeedbackDialog extends StatefulWidget {
   final String dimensionId;
   final String dimensionName;
   final String currentValue;
-  final Function(DimensionFeedback) onSubmit;
+  final Future<void> Function(DimensionFeedback) onSubmit;
 
   const FeedbackDialog({
     super.key,
@@ -38,7 +38,7 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
     super.dispose();
   }
 
-  void _submitFeedback() {
+  void _submitFeedback() async {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -58,7 +58,21 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
       timestamp: DateTime.now(),
     );
 
-    widget.onSubmit(feedback);
+    // Submit feedback and wait for completion
+    await widget.onSubmit(feedback);
+
+    // Close dialog after AI analysis is complete
+    if (mounted) {
+      Navigator.of(context).pop();
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Thank you! Your feedback has been applied to ${widget.dimensionName}.'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -76,8 +90,10 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
           ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
+      content: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -125,7 +141,7 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
               runSpacing: 8,
               children: _quickReasons.map((reason) {
                 return OutlinedButton(
-                  onPressed: () {
+                  onPressed: _isSubmitting ? null : () {
                     _reasonController.text = reason;
                   },
                   style: OutlinedButton.styleFrom(
@@ -156,6 +172,7 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
               ),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
+              enabled: !_isSubmitting,
             ),
 
             const SizedBox(height: 8),
@@ -171,10 +188,34 @@ class _FeedbackDialogState extends State<FeedbackDialog> {
             ),
           ],
         ),
+          ),
+
+          // Loading overlay
+          if (_isSubmitting)
+            Container(
+              color: Colors.white.withOpacity(0.9),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Analyzing with AI...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         ElevatedButton(

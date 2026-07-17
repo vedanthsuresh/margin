@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/margin_score.dart';
 import '../models/margin_context.dart';
 import '../models/user_input.dart';
@@ -21,8 +22,10 @@ class MarginService {
 
   /// Apply feedback to create an adjusted context
   MarginContext applyFeedback(DimensionFeedback feedback) {
-    // For now, create a copy of the context with adjusted values
-    // In the future, this would use AI to intelligently adjust factors
+    debugPrint('🔧 MarginService.applyFeedback');
+    debugPrint('   Dimension: ${feedback.dimensionName} (${feedback.dimensionId})');
+    debugPrint('   Current Value: ${feedback.currentValue}');
+    debugPrint('   Suggested Value: ${feedback.suggestedValue ?? "N/A (using default adjustment)"}');
 
     switch (feedback.dimensionId) {
       case 'day_factor':
@@ -30,12 +33,22 @@ class MarginService {
         final todayKey = _getTodayDayKey();
         final currentFactor = adjustedDayFactors[todayKey];
         if (currentFactor != null) {
+          // Use AI suggested value if available, otherwise add 1
+          final newAdjustment = feedback.suggestedValue != null
+              ? (double.tryParse(feedback.suggestedValue!)?.toInt() ?? currentFactor.adjustment + 1)
+              : currentFactor.adjustment + 1;
+
+          debugPrint('   New Day Factor adjustment: $newAdjustment');
           adjustedDayFactors[todayKey] = DayFactor(
-            adjustment: currentFactor.adjustment + 1,
-            reason: currentFactor.reason,
-            description: '${currentFactor.description} (user adjusted)',
+            adjustment: newAdjustment,
+            reason: feedback.reason,
+            description: '${currentFactor.description} (adjusted based on feedback)',
           );
         }
+        // Store adjustment in dimensionOverrides for persistence
+        final overrides = Map<String, double>.from(_context.dimensionOverrides ?? {});
+        overrides['day_factor'] = adjustedDayFactors[todayKey]?.adjustment.toDouble() ?? 0.0;
+        debugPrint('   💾 Stored day_factor override in dimensionOverrides: ${overrides['day_factor']}');
         return MarginContext(
           version: _context.version,
           lastUpdated: _context.lastUpdated,
@@ -51,20 +64,38 @@ class MarginService {
           companySize: _context.companySize,
           chronotype: _context.chronotype,
           userMeetingHours: _context.userMeetingHours,
+          aiClassifiedCompanySizeAdjustment: _context.aiClassifiedCompanySizeAdjustment,
+          workLifePatterns: _context.workLifePatterns,
+          dimensionOverrides: overrides,
         );
 
       case 'seasonal_factor':
+        debugPrint('   🔍 seasonal_factors keys: ${_context.seasonalFactors.keys}');
         final adjustedSeasonal = Map<String, SeasonalFactor>.from(_context.seasonalFactors);
         final currentKey = _getCurrentSeasonKey();
+        debugPrint('   🔍 currentKey (season): $currentKey');
         final currentFactor = adjustedSeasonal[currentKey];
+        debugPrint('   🔍 currentFactor: ${currentFactor != null ? currentFactor.adjustment : 'NULL'}');
         if (currentFactor != null) {
+          // Use AI suggested value if available, otherwise add 1
+          final newAdjustment = feedback.suggestedValue != null
+              ? (double.tryParse(feedback.suggestedValue!)?.toInt() ?? currentFactor.adjustment + 1)
+              : currentFactor.adjustment + 1;
+
+          debugPrint('   New Seasonal Factor adjustment: $newAdjustment');
           adjustedSeasonal[currentKey] = SeasonalFactor(
-            adjustment: currentFactor.adjustment + 1,
-            reason: currentFactor.reason,
+            adjustment: newAdjustment,
+            reason: feedback.reason,
             description: currentFactor.description,
             months: currentFactor.months,
           );
         }
+        // Store adjustment in dimensionOverrides for persistence
+        final overrides = Map<String, double>.from(_context.dimensionOverrides ?? {});
+        overrides['seasonal_factor'] = adjustedSeasonal[currentKey]?.adjustment.toDouble() ?? 0.0;
+        debugPrint('   💾 Stored seasonal_factor override in dimensionOverrides: ${overrides['seasonal_factor']}');
+        debugPrint('   🔍 Full overrides map: $overrides');
+        debugPrint('   🔍 overrides.isEmpty: ${overrides.isEmpty}');
         return MarginContext(
           version: _context.version,
           lastUpdated: _context.lastUpdated,
@@ -80,6 +111,9 @@ class MarginService {
           companySize: _context.companySize,
           chronotype: _context.chronotype,
           userMeetingHours: _context.userMeetingHours,
+          aiClassifiedCompanySizeAdjustment: _context.aiClassifiedCompanySizeAdjustment,
+          workLifePatterns: _context.workLifePatterns,
+          dimensionOverrides: overrides,
         );
 
       case 'timezone_factor':
@@ -87,11 +121,21 @@ class MarginService {
         final currentKey = _context.timezoneSpan ?? 'single_timezone';
         final currentFactor = adjustedTz[currentKey];
         if (currentFactor != null) {
+          // Use AI suggested value if available, otherwise reduce penalty by 1
+          final newPenalty = feedback.suggestedValue != null
+              ? (double.tryParse(feedback.suggestedValue!)?.toInt() ?? currentFactor.penalty + 1)
+              : currentFactor.penalty + 1;
+
+          debugPrint('   New Timezone Factor penalty: $newPenalty');
           adjustedTz[currentKey] = TimezoneFactor(
-            penalty: currentFactor.penalty + 1,
-            description: '${currentFactor.description} (user adjusted)',
+            penalty: newPenalty,
+            description: '${currentFactor.description} (adjusted based on feedback)',
           );
         }
+        // Store adjustment in dimensionOverrides for persistence
+        final overrides = Map<String, double>.from(_context.dimensionOverrides ?? {});
+        overrides['timezone_factor'] = adjustedTz[currentKey]?.penalty.toDouble() ?? 0.0;
+        debugPrint('   💾 Stored timezone_factor override in dimensionOverrides: ${overrides['timezone_factor']}');
         return MarginContext(
           version: _context.version,
           lastUpdated: _context.lastUpdated,
@@ -107,6 +151,9 @@ class MarginService {
           companySize: _context.companySize,
           chronotype: _context.chronotype,
           userMeetingHours: _context.userMeetingHours,
+          aiClassifiedCompanySizeAdjustment: _context.aiClassifiedCompanySizeAdjustment,
+          workLifePatterns: _context.workLifePatterns,
+          dimensionOverrides: overrides,
         );
 
       case 'company_size':
@@ -114,11 +161,21 @@ class MarginService {
         final currentKey = _context.companySize ?? 'mid_market';
         final currentFactor = adjustedCompany[currentKey];
         if (currentFactor != null) {
+          // Use AI suggested value if available, otherwise add 1
+          final newAdjustment = feedback.suggestedValue != null
+              ? (double.tryParse(feedback.suggestedValue!)?.toInt() ?? currentFactor.adjustment + 1)
+              : currentFactor.adjustment + 1;
+
+          debugPrint('   New Company Size adjustment: $newAdjustment');
           adjustedCompany[currentKey] = CompanySizeFactor(
-            adjustment: currentFactor.adjustment + 1,
-            description: '${currentFactor.description} (user adjusted)',
+            adjustment: newAdjustment,
+            description: '${currentFactor.description} (adjusted based on feedback)',
           );
         }
+        // Store adjustment in dimensionOverrides for persistence
+        final overrides = Map<String, double>.from(_context.dimensionOverrides ?? {});
+        overrides['company_size'] = adjustedCompany[currentKey]?.adjustment.toDouble() ?? 0.0;
+        debugPrint('   💾 Stored company_size override in dimensionOverrides: ${overrides['company_size']}');
         return MarginContext(
           version: _context.version,
           lastUpdated: _context.lastUpdated,
@@ -134,9 +191,39 @@ class MarginService {
           companySize: _context.companySize,
           chronotype: _context.chronotype,
           userMeetingHours: _context.userMeetingHours,
+          aiClassifiedCompanySizeAdjustment: _context.aiClassifiedCompanySizeAdjustment,
+          workLifePatterns: _context.workLifePatterns,
+          dimensionOverrides: overrides,
         );
 
+      case 'holiday_factor':
+        debugPrint('   ℹ️ Holiday factor is calculated from actual holidays and cannot be manually adjusted');
+        return _context;
+
+      case 'meeting_load':
+        debugPrint('   ℹ️ Meeting load is derived from calendar data, not adjustable via feedback');
+        return _context;
+
+      case 'sleep_impact':
+        if (feedback.suggestedValue != null) {
+          final overrideValue = double.tryParse(feedback.suggestedValue!);
+          if (overrideValue != null) {
+            debugPrint('   🎯 Storing sleep impact override: $overrideValue');
+            // Create or update dimension overrides map
+            final overrides = Map<String, double>.from(_context.dimensionOverrides ?? {});
+            overrides['sleep_impact'] = overrideValue;
+            return _context.copyWith(dimensionOverrides: overrides);
+          }
+        }
+        debugPrint('   ℹ️ Sleep impact feedback has no suggested value, ignoring');
+        return _context;
+
+      case 'stress_indicators':
+        debugPrint('   ℹ️ Stress indicators are derived from work-life patterns, not adjustable via feedback');
+        return _context;
+
       default:
+        debugPrint('   ⚠️ Unknown dimension ID: ${feedback.dimensionId}');
         return _context;
     }
   }
@@ -150,19 +237,6 @@ class MarginService {
     final month = DateTime.now().month;
     final quarter = ((month - 1) ~/ 3) + 1;
     return 'Q$quarter';
-  }
-
-  String _getWorkLifeDescription() {
-    final patterns = _context.workLifePatterns;
-    if (patterns == null) return 'No data available';
-
-    if (patterns.weekendMeetingsCount > 0) {
-      return '${patterns.weekendMeetingsCount} weekend meetings detected';
-    } else if (patterns.lateMeetingsCount > 0) {
-      return '${patterns.lateMeetingsCount} late meetings detected';
-    } else {
-      return 'Good boundaries maintained';
-    }
   }
 
   String _getSleepDescription(double sleepHours) {
@@ -247,6 +321,16 @@ class MarginService {
     return '-$penaltyValue';
   }
 
+  /// Get quality label for a given sleep impact value
+  /// Returns a label like "OPTIMAL:5.0", "CRITICAL:-3.0", etc.
+  String _getQualityLabelForValue(double value) {
+    if (value >= 4) return 'OPTIMAL:$value';
+    if (value >= 1) return 'ADEQUATE:$value';
+    if (value >= -2) return 'SUBOPTIMAL:$value';
+    if (value > -5) return 'CRITICAL:$value';
+    return 'CRITICAL:$value';
+  }
+
   /// Get current dimension values for display
   Map<String, DimensionValue> getCurrentDimensions([UserInput? userInput]) {
     final now = DateTime.now();
@@ -297,8 +381,12 @@ class MarginService {
       'sleep_impact': DimensionValue(
         id: 'sleep_impact',
         name: 'Sleep Impact',
-        value: _getSleepImpactValue(userInput?.sleep ?? 7),
-        description: _getSleepDescription(userInput?.sleep ?? 7),
+        value: _context.dimensionOverrides?['sleep_impact'] != null
+            ? _getQualityLabelForValue(_context.dimensionOverrides!['sleep_impact']!)
+            : _getSleepImpactValue(userInput?.sleep ?? 7),
+        description: _context.dimensionOverrides?['sleep_impact'] != null
+            ? '${_getSleepDescription(userInput?.sleep ?? 7)} (user adjusted: ${_context.dimensionOverrides!['sleep_impact']!.toStringAsFixed(1)})'
+            : _getSleepDescription(userInput?.sleep ?? 7),
         category: DimensionCategory.personal,
       ),
       'stress_indicators': DimensionValue(
@@ -307,13 +395,6 @@ class MarginService {
         value: _context.getStressAdjustments().toStringAsFixed(2),
         description: _context.workLifePatterns?.description ?? 'No data available',
         category: DimensionCategory.professional,
-      ),
-      'work_life_balance': DimensionValue(
-        id: 'work_life_balance',
-        name: 'Work-Life Balance',
-        value: _context.getWorkLifePenalties().toStringAsFixed(2),
-        description: _getWorkLifeDescription(),
-        category: DimensionCategory.personal,
       ),
     };
   }

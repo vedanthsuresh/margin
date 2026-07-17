@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/sandbox_screen.dart';
@@ -10,22 +9,14 @@ import 'services/wearable_service.dart';
 import 'services/calendar_service.dart';
 import 'services/preferences_service.dart';
 import 'services/ai_response_service.dart';
+import 'services/ai_feedback_analysis_service.dart';
 import 'providers/margin_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
-  // Load .env file (gracefully handle if file doesn't exist)
-  try {
-    await dotenv.load(fileName: ".env");
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    if (apiKey.isEmpty) {
-      print('Note: GEMINI_API_KEY not found in .env, using demo mode');
-    } else {
-      print('✅ GEMINI_API_KEY loaded from .env (${apiKey.length} chars)');
-    }
-  } catch (e) {
-    // .env file not found - will use demo mode with mock AI responses
-    print('Note: .env file not found, using demo mode with mock AI responses: $e');
-  }
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MarginApp());
 }
 
@@ -120,13 +111,14 @@ class DashboardScreenWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final apiService = ApiService();
-    final feedbackService = FeedbackService();
+    final aiFeedbackAnalysisService = AIFeedbackAnalysisService();
+    final feedbackService = FeedbackService(
+      aiAnalysisService: aiFeedbackAnalysisService,
+    );
     final wearableService = WearableService();
     final calendarService = CalendarService();
     final preferencesService = PreferencesService();
-    // Load API key from .env file, fallback to empty for demo mode
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    final aiService = AIResponseService(apiKey: apiKey);
+    final aiService = AIResponseService();
 
     return MultiProvider(
       providers: [
@@ -154,12 +146,13 @@ class OnboardingScreenWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final preferencesService = PreferencesService();
     final apiService = ApiService();
-    final feedbackService = FeedbackService();
+    final aiFeedbackAnalysisService = AIFeedbackAnalysisService();
+    final feedbackService = FeedbackService(
+      aiAnalysisService: aiFeedbackAnalysisService,
+    );
     final wearableService = WearableService();
     final calendarService = CalendarService();
-    // Load API key from .env file, fallback to empty for demo mode
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    final aiService = AIResponseService(apiKey: apiKey);
+    final aiService = AIResponseService();
 
     return MultiProvider(
       providers: [
@@ -187,13 +180,14 @@ class SandboxScreenWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final apiService = ApiService();
-    final feedbackService = FeedbackService();
+    final aiFeedbackAnalysisService = AIFeedbackAnalysisService();
+    final feedbackService = FeedbackService(
+      aiAnalysisService: aiFeedbackAnalysisService,
+    );
     final wearableService = WearableService();
     final calendarService = CalendarService();
     final preferencesService = PreferencesService();
-    // Load API key from .env file, fallback to empty for demo mode
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    final aiService = AIResponseService(apiKey: apiKey);
+    final aiService = AIResponseService();
 
     return MultiProvider(
       providers: [

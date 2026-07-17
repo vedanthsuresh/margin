@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/margin_provider.dart';
-import '../services/margin_service.dart' show DimensionValue, DimensionCategory;
+import '../services/margin_service.dart' show DimensionCategory;
 import 'dimension_card.dart';
 
 /// List of all dimensions that affect the Margin Score
-class DimensionsList extends StatelessWidget {
+class DimensionsList extends StatefulWidget {
   const DimensionsList({super.key});
 
+  @override
+  State<DimensionsList> createState() => _DimensionsListState();
+}
+
+class _DimensionsListState extends State<DimensionsList> {
   @override
   Widget build(BuildContext context) {
     return Consumer<MarginProvider>(
@@ -49,8 +54,8 @@ class DimensionsList extends StatelessWidget {
                     child: DimensionCard(
                       id: entry.key,
                       dimension: entry.value,
-                      onFeedback: (feedback) {
-                        provider.submitFeedback(feedback);
+                      onFeedback: (feedback) async {
+                        await provider.submitFeedback(feedback);
                       },
                     ),
                   );
@@ -68,8 +73,8 @@ class DimensionsList extends StatelessWidget {
                     child: DimensionCard(
                       id: entry.key,
                       dimension: entry.value,
-                      onFeedback: (feedback) {
-                        provider.submitFeedback(feedback);
+                      onFeedback: (feedback) async {
+                        await provider.submitFeedback(feedback);
                       },
                     ),
                   );
@@ -87,8 +92,8 @@ class DimensionsList extends StatelessWidget {
                     child: DimensionCard(
                       id: entry.key,
                       dimension: entry.value,
-                      onFeedback: (feedback) {
-                        provider.submitFeedback(feedback);
+                      onFeedback: (feedback) async {
+                        await provider.submitFeedback(feedback);
                       },
                     ),
                   );

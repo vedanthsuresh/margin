@@ -102,6 +102,11 @@ class _SandboxScreenState extends State<SandboxScreen> {
           final score = provider.currentScore;
           final capacityColor = _getCapacityColor(score?.capacityLevel);
 
+          // Show loading state if score is null
+          if (score == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
           return SingleChildScrollView(
             controller: _responseScrollController,
             padding: const EdgeInsets.all(16),
@@ -109,10 +114,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Margin Score Indicator
-                _MarginIndicator(
-                  score: score,
-                  capacityColor: capacityColor,
-                ),
+                _MarginIndicator(score: score, capacityColor: capacityColor),
 
                 const SizedBox(height: 24),
 
@@ -144,10 +146,11 @@ class _SandboxScreenState extends State<SandboxScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  _ResponseDisplay(
-                    response: _responses!.getResponse(_selectedAction!),
-                    onCopy: _copyResponse,
-                  ),
+                  if (_selectedAction != null)
+                    _ResponseDisplay(
+                      response: _responses!.getResponse(_selectedAction!),
+                      onCopy: _copyResponse,
+                    ),
                 ],
               ],
             ),
@@ -226,10 +229,7 @@ class _MarginIndicator extends StatelessWidget {
   final MarginScore? score;
   final Color capacityColor;
 
-  const _MarginIndicator({
-    required this.score,
-    required this.capacityColor,
-  });
+  const _MarginIndicator({required this.score, required this.capacityColor});
 
   @override
   Widget build(BuildContext context) {
@@ -251,11 +251,7 @@ class _MarginIndicator extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.psychology_outlined,
-                  color: capacityColor,
-                  size: 32,
-                ),
+                Icon(Icons.psychology_outlined, color: capacityColor, size: 32),
                 const SizedBox(width: 12),
                 Text(
                   'Your Capacity',
@@ -266,26 +262,37 @@ class _MarginIndicator extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '${score!.finalScore}%',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: capacityColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                Flexible(
+                  child: Text(
+                    '${score!.finalScore}%',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: capacityColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: capacityColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    score!.capacityLevel.label,
-                    style: TextStyle(
-                      color: capacityColor,
-                      fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: capacityColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      score!.capacityLevel.label,
+                      style: TextStyle(
+                        color: capacityColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                 ),
@@ -342,10 +349,11 @@ class _InputSection extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            SegmentedButton<Relationship>(
-              segments: Relationship.values.map((rel) {
-                return ButtonSegment(
-                  value: rel,
+            Wrap(
+              spacing: 8,
+              children: Relationship.values.map((rel) {
+                final isSelected = selectedRelationship == rel;
+                return ChoiceChip(
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -354,12 +362,12 @@ class _InputSection extends StatelessWidget {
                       Text(rel.label),
                     ],
                   ),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    onRelationshipChanged(rel);
+                  },
                 );
               }).toList(),
-              selected: {selectedRelationship},
-              onSelectionChanged: (Set<Relationship> selected) {
-                onRelationshipChanged(selected.first);
-              },
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -371,7 +379,9 @@ class _InputSection extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.auto_awesome),
-              label: Text(isGenerating ? 'Generating...' : 'Generate Responses'),
+              label: Text(
+                isGenerating ? 'Generating...' : 'Generate Responses',
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -399,10 +409,7 @@ class _ErrorMessage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Theme.of(context).colorScheme.error,
-          ),
+          Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -443,6 +450,7 @@ class _ActionButtons extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
+          alignment: WrapAlignment.center,
           children: ActionType.values.map((action) {
             final isSelected = selectedAction == action;
             return ActionButton(
@@ -487,7 +495,7 @@ class ActionButton extends StatelessWidget {
         children: [
           Icon(_getIconData(action.icon), size: 18),
           const SizedBox(width: 8),
-          Text(action.label),
+          Flexible(child: Text(action.label, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -514,10 +522,7 @@ class _ResponseDisplay extends StatelessWidget {
   final String response;
   final ValueChanged<String> onCopy;
 
-  const _ResponseDisplay({
-    required this.response,
-    required this.onCopy,
-  });
+  const _ResponseDisplay({required this.response, required this.onCopy});
 
   @override
   Widget build(BuildContext context) {
@@ -532,11 +537,13 @@ class _ResponseDisplay extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Your Response:',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
+                Flexible(
+                  child: Text(
+                    'Your Response:',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                  ),
                 ),
                 IconButton.filled(
                   onPressed: () => onCopy(response),

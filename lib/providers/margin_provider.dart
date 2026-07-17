@@ -33,6 +33,9 @@ class MarginProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Debug counter to track wearable data updates
+  int _wearableDataUpdateCount = 0;
+
   MarginProvider({
     required ApiService apiService,
     required FeedbackService feedbackService,
@@ -71,6 +74,13 @@ class MarginProvider with ChangeNotifier {
 
       // Merge context with user preferences (handles null preferences gracefully)
       _context = _mergeContextWithPreferences(backendContext, _userPreferences);
+
+      // Load dimension overrides from storage
+      final overrides = await _preferencesService.loadDimensionOverrides();
+      if (overrides.isNotEmpty && _context != null) {
+        _context = _context!.copyWith(dimensionOverrides: overrides);
+        debugPrint('📥 Loaded dimension overrides from storage: $overrides');
+      }
 
       await _loadCalendarData();
       _loadWearableData();
@@ -143,10 +153,11 @@ class MarginProvider with ChangeNotifier {
         critical: SleepRange(hours: [0, 1, 2, 3, 4], adjustment: -10, description: 'Critical'),
         oversleep: SleepRange(hours: [12, 13, 14, 15], adjustment: -2, description: 'Oversleep'),
       ),
-      userRole: _userPreferences?.userRole ?? 'software_engineer',
+      userRole: _userPreferences?.aiClassifiedRole ?? _userPreferences?.userRole ?? 'software_engineer',
       timezoneSpan: _userPreferences?.timezoneSpan ?? 'single_timezone',
-      companySize: _userPreferences?.companySize ?? 'mid_market',
+      companySize: _userPreferences?.aiClassifiedCompanySize ?? _userPreferences?.companySize ?? 'mid_market',
       chronotype: _userPreferences?.chronotype,
+      aiClassifiedCompanySizeAdjustment: _userPreferences?.aiClassifiedCompanySizeAdjustment,
       workLifePatterns: _createWorkLifePatterns(),
       userMeetingHours: const [6, 6, 6, 6, 6],
     );
@@ -167,10 +178,11 @@ class MarginProvider with ChangeNotifier {
       timezoneFactors: backendContext.timezoneFactors,
       companySizeFactors: backendContext.companySizeFactors,
       sleepImpactFactors: backendContext.sleepImpactFactors,
-      userRole: preferences?.userRole ?? backendContext.userRole ?? 'software_engineer',
+      userRole: preferences?.aiClassifiedRole ?? preferences?.userRole ?? backendContext.userRole ?? 'software_engineer',
       timezoneSpan: preferences?.timezoneSpan ?? backendContext.timezoneSpan ?? 'single_timezone',
-      companySize: preferences?.companySize ?? backendContext.companySize ?? 'mid_market',
+      companySize: preferences?.aiClassifiedCompanySize ?? preferences?.companySize ?? backendContext.companySize ?? 'mid_market',
       chronotype: preferences?.chronotype ?? backendContext.chronotype,
+      aiClassifiedCompanySizeAdjustment: preferences?.aiClassifiedCompanySizeAdjustment,
       workLifePatterns: _createWorkLifePatterns(),
       userMeetingHours: const [6, 6, 6, 6, 6],
     );
@@ -193,9 +205,13 @@ class MarginProvider with ChangeNotifier {
     return null;
   }
 
-  /// Load data from wearable service
-  void _loadWearableData() {
-    _wearableData = _wearableService.getMockData();
+  /// Load data from wearable service (async to load persisted values)
+  Future<void> _loadWearableData() async {
+    debugPrint('📲 MarginProvider._loadWearableData() - Loading wearable data...');
+    await _wearableService.initialize();
+    _wearableData = _wearableService.currentData;
+    debugPrint('   ✅ Loaded: sleep=${_wearableData?.sleep}, energy=${_wearableData?.energy}');
+    debugPrint('   Stack trace: ${StackTrace.current}');
   }
 
   /// Load data from calendar service
@@ -206,6 +222,8 @@ class MarginProvider with ChangeNotifier {
   /// Listen to live updates from wearable
   void _listenToWearableUpdates() {
     _wearableService.dataStream.listen((data) {
+      _wearableDataUpdateCount++;
+      debugPrint('🔄 Stream update #$_wearableDataUpdateCount: sleep=${data.sleep}, energy=${data.energy}');
       _wearableData = data;
       _calculateScore();
       _updateDimensions();
@@ -215,7 +233,15 @@ class MarginProvider with ChangeNotifier {
 
   /// Calculate the current Margin Score
   void _calculateScore() {
-    if (_context == null || _wearableData == null || _calendarData == null) return;
+    debugPrint('📊 _calculateScore() called');
+    debugPrint('   _context: ${_context != null}');
+    debugPrint('   _wearableData: ${_wearableData != null} (sleep=${_wearableData?.sleep}, energy=${_wearableData?.energy})');
+    debugPrint('   _calendarData: ${_calendarData != null}');
+
+    if (_context == null || _wearableData == null || _calendarData == null) {
+      debugPrint('   ⚠️ Skipping calculation - missing data');
+      return;
+    }
 
     // Compose UserInput from separate data sources
     final userInput = UserInput(
@@ -225,6 +251,7 @@ class MarginProvider with ChangeNotifier {
 
     final service = MarginService(_context!);
     _currentScore = service.calculateScore(userInput);
+    debugPrint('   ✅ Score calculated: ${_currentScore?.finalScore} (${_currentScore?.capacityLevel})');
   }
 
   /// Update dimensions display
@@ -243,6 +270,7 @@ class MarginProvider with ChangeNotifier {
 
   /// Refresh all data
   Future<void> refresh() async {
+    debugPrint('🔄 Refresh called - reloading context with persisted overrides');
     _isLoading = true;
     notifyListeners();
 
@@ -252,8 +280,15 @@ class MarginProvider with ChangeNotifier {
       if (_context != null) {
         _context = _mergeContextWithPreferences(_context!, _userPreferences);
       }
+      // Re-load dimension overrides from storage
+      final overrides = await _preferencesService.loadDimensionOverrides();
+      if (overrides.isNotEmpty && _context != null) {
+        _context = _context!.copyWith(dimensionOverrides: overrides);
+        debugPrint('📥 Reloaded dimension overrides from storage: $overrides');
+      }
       await _loadCalendarData();
-      _wearableService.simulateNewData();
+      // DON'T call simulateNewData() - it overrides user-set values!
+      // _wearableService.simulateNewData();
       _calculateScore();
       _updateDimensions();
       _isLoading = false;
@@ -266,11 +301,52 @@ class MarginProvider with ChangeNotifier {
     }
   }
 
-  /// Submit feedback on a dimension
-  void submitFeedback(DimensionFeedback feedback) {
+  /// Submit feedback on a dimension (async with AI analysis)
+  Future<void> submitFeedback(DimensionFeedback feedback) async {
+    debugPrint('📥 MarginProvider.submitFeedback called');
+    if (_context == null) {
+      debugPrint('⚠️ Context is null, skipping feedback');
+      return;
+    }
+
+    debugPrint('⏳ Calling FeedbackService.submitFeedback...');
+    final applied = await _feedbackService.submitFeedback(
+      feedback,
+      context: _context,
+    );
+    debugPrint('✅ FeedbackService returned: ${applied.reason}');
+
+    // Apply the feedback to the context
+    final service = MarginService(_context!);
+    _context = service.applyFeedback(applied);
+
+    debugPrint('   🔍 After applyFeedback - dimensionOverrides: ${_context!.dimensionOverrides}');
+
+    // Save dimension overrides to storage
+    if (_context!.dimensionOverrides != null && _context!.dimensionOverrides!.isNotEmpty) {
+      debugPrint('   💾 Saving dimensionOverrides to storage...');
+      await _preferencesService.saveDimensionOverrides(_context!.dimensionOverrides!);
+      debugPrint('   ✅ DimensionOverrides saved successfully');
+    } else {
+      debugPrint('   ⚠️ dimensionOverrides is null or empty, skipping save');
+      debugPrint('      dimensionOverrides == null: ${_context!.dimensionOverrides == null}');
+      debugPrint('      dimensionOverrides.isEmpty: ${_context!.dimensionOverrides?.isEmpty ?? true}');
+    }
+
+    // Recalculate score with new context
+    _calculateScore();
+    _updateDimensions();
+
+    debugPrint('🔄 Score recalculated: ${_currentScore?.finalScore}');
+    notifyListeners();
+    debugPrint('📢 Listeners notified');
+  }
+
+  /// Submit feedback synchronously (for backward compatibility)
+  void submitFeedbackSync(DimensionFeedback feedback) {
     if (_context == null) return;
 
-    final applied = _feedbackService.submitFeedback(feedback);
+    final applied = _feedbackService.submitFeedbackSync(feedback);
 
     // Apply the feedback to the context
     final service = MarginService(_context!);
@@ -285,10 +361,17 @@ class MarginProvider with ChangeNotifier {
 
   /// Update wearable and calendar data (DEV ONLY - for testing)
   /// This allows developers to manually adjust the data for testing
-  void updateWearableData(UserInput newData) {
+  /// PERSISTED: Values are saved to storage
+  void updateWearableData(UserInput newData) async {
+    debugPrint('🎚️ Slider adjusted - New values: sleep=${newData.wearableData.sleep}, energy=${newData.wearableData.energy}');
     try {
       _wearableData = newData.wearableData;
       _calendarData = newData.calendarData;
+
+      // Persist the wearable data (sleep, energy) - MUST await!
+      await _wearableService.updateData(_wearableData!);
+      debugPrint('   ✅ Data saved successfully');
+
       if (_context != null) {
         _calculateScore();
         _updateDimensions();
@@ -329,16 +412,41 @@ class MarginProvider with ChangeNotifier {
     required String text,
     required String relationship,
   }) async {
+    // Ensure score is up-to-date before generating responses
+    _calculateScore();
+
     final score = _currentScore?.finalScore ?? 50;
     final level = _currentScore?.capacityLevel ?? CapacityLevel.moderate;
 
-    debugPrint('Generating boundary responses: score=$score, level=$level, relationship=$relationship');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('🤖 AI BOUNDARY RESPONSE GENERATION');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('Input: "$text"');
+    debugPrint('Relationship: $relationship');
+    debugPrint('Margin Score: $score ($level)');
+    debugPrint('Current Score Data: $_currentScore');
+    debugPrint('────────────────────────────────────────────────────');
 
-    return await _aiService.generateResponses(
+    final responses = await _aiService.generateResponses(
       incomingText: text,
       relationship: relationship,
       marginScore: score,
       capacityLevel: level,
     );
+
+    debugPrint('📤 AI RESPONSES:');
+    debugPrint('   Polite Decline: "${responses.politeDecline}"');
+    debugPrint('   Soft Compromise: "${responses.softCompromise}"');
+    debugPrint('   Reschedule: "${responses.reschedule}"');
+    debugPrint('   Accept Request: "${responses.acceptRequest}"');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    return responses;
+  }
+
+  @override
+  void dispose() {
+    debugPrint('🗑️ MarginProvider disposed');
+    super.dispose();
   }
 }

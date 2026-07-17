@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/margin_service.dart' show DimensionValue;
 import '../models/feedback.dart';
@@ -7,7 +8,7 @@ import 'feedback_dialog.dart';
 class DimensionCard extends StatefulWidget {
   final String id;
   final DimensionValue dimension;
-  final Function(DimensionFeedback) onFeedback;
+  final Future<void> Function(DimensionFeedback) onFeedback;
 
   const DimensionCard({
     super.key,
@@ -23,6 +24,17 @@ class DimensionCard extends StatefulWidget {
 class _DimensionCardState extends State<DimensionCard> {
   bool _showFeedbackButton = false;
   bool _isExpanded = false;
+  bool _isMobile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Detect if we're on mobile platform
+    _isMobile = !Platform.isMacOS && !Platform.isWindows && !Platform.isLinux;
+  }
+
+  /// Always show feedback button on mobile, on hover for desktop
+  bool get _shouldShowFeedback => _isMobile || _showFeedbackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -30,183 +42,204 @@ class _DimensionCardState extends State<DimensionCard> {
     final description = widget.dimension.description;
     final needsExpansion = description.length > 25;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _showFeedbackButton = true),
-      onExit: (_) => setState(() => _showFeedbackButton = false),
-      child: InkWell(
-        onTap: needsExpansion ? () => setState(() => _isExpanded = !_isExpanded) : null,
+    final cardContent = Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        child: Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: _getValueColor(value).withOpacity(0.2),
-              width: 1,
+        side: BorderSide(
+          color: _getValueColor(value).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _getValueColor(value).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _getIcon(value),
+                color: _getValueColor(value),
+                size: 20,
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _getValueColor(value).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getIcon(value),
-                    color: _getValueColor(value),
-                    size: 20,
-                  ),
-                ),
 
-                const SizedBox(width: 12),
+            const SizedBox(width: 12),
 
-                // Name and value
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Name and value
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.dimension.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
                     children: [
-                      Text(
-                        widget.dimension.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(value).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _getStatus(value),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: _getStatusColor(value),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(value).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              _getStatus(value),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: _getStatusColor(value),
-                              ),
-                            ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          description,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
                           ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              description,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                              maxLines: _isExpanded ? null : 1,
-                              overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (needsExpansion && !_isExpanded)
-                            Text(
-                              '...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade400,
-                                fontWeight: FontWeight.w600,
-                              ),
-                          ),
-                          if (needsExpansion)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 2),
-                              child: Icon(
-                                _isExpanded
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                size: 16,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                        ],
+                          maxLines: _isExpanded ? null : 1,
+                          overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                        ),
                       ),
+                      if (needsExpansion && !_isExpanded)
+                        Text(
+                          '...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      if (needsExpansion)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 2),
+                          child: Icon(
+                            _isExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 16,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                     ],
                   ),
-                ),
+                ],
+              ),
+            ),
 
-                const SizedBox(width: 12),
+            const SizedBox(width: 12),
 
-                // Value badge with status indicator
-                Row(
-                  children: [
-                    // Status indicator dot
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _getValueColor(value),
-                        shape: BoxShape.circle,
-                      ),
+            // Value badge with status indicator - FIXED SIZE
+            SizedBox(
+              height: 32,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status indicator dot
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _getValueColor(value),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 8),
-                    // Value badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getValueColor(value).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _getValueColor(value).withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        _formatValue(value),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: _getValueColor(value),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Feedback button
-                if (_showFeedbackButton) ...[
+                  ),
                   const SizedBox(width: 8),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _showFeedbackDialog(context),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.feedback_outlined,
-                          size: 18,
-                          color: Colors.orange,
-                        ),
+                  // Value badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getValueColor(value).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _getValueColor(value).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      _formatValue(value),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _getValueColor(value),
                       ),
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
+
+            // Feedback button (always visible on mobile, on hover on desktop)
+            if (_shouldShowFeedback) ...[
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showFeedbackDialog(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.feedback_outlined,
+                        size: 18,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
+
+    // On mobile, use GestureDetector with long-press; on desktop, use MouseRegion
+    if (_isMobile) {
+      return GestureDetector(
+        onLongPress: () => _showFeedbackDialog(context),
+        child: InkWell(
+          onTap: needsExpansion ? () => setState(() => _isExpanded = !_isExpanded) : null,
+          borderRadius: BorderRadius.circular(12),
+          child: cardContent,
+        ),
+      );
+    } else {
+      return MouseRegion(
+        onEnter: (_) => setState(() => _showFeedbackButton = true),
+        onExit: (_) => setState(() => _showFeedbackButton = false),
+        child: InkWell(
+          onTap: needsExpansion ? () => setState(() => _isExpanded = !_isExpanded) : null,
+          borderRadius: BorderRadius.circular(12),
+          child: cardContent,
+        ),
+      );
+    }
   }
 
   Color _getStatusColor(String value) {
@@ -361,28 +394,24 @@ class _DimensionCardState extends State<DimensionCard> {
     return '${numValue > 0 ? '+' : ''}$value';
   }
 
-  bool _isAdjustment(String value) {
-    final numValue = double.tryParse(value);
-    return numValue != null && numValue != 0;
-  }
-
   void _showFeedbackDialog(BuildContext context) {
+    debugPrint('🔔 Feedback dialog opened for: ${widget.dimension.name}');
     showDialog(
       context: context,
       builder: (context) => FeedbackDialog(
         dimensionId: widget.id,
         dimensionName: widget.dimension.name,
         currentValue: widget.dimension.value,
-        onSubmit: (feedback) {
-          widget.onFeedback(feedback);
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Thank you! Your feedback has been applied.'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
+        onSubmit: (feedback) async {
+          debugPrint('📝 Feedback submitted: ${feedback.reason}');
+          debugPrint('   Dimension: ${feedback.dimensionName}');
+          debugPrint('   Current Value: ${feedback.currentValue}');
+
+          // Submit feedback (async) - dialog will show loading state
+          debugPrint('⏳ Calling provider.submitFeedback...');
+          await widget.onFeedback(feedback);
+          debugPrint('✅ Feedback processed!');
+          // Dialog will close automatically after completion
         },
       ),
     );

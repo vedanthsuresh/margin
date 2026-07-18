@@ -9,7 +9,7 @@ class PreferencesService {
   static const String _onboardingCompletedKey = 'onboarding_completed';
   static const String _dimensionOverridesKey = 'dimension_overrides';
   static const String _frictionLockQuarantineKey = 'friction_lock_quarantine';
-  static const int _quarantineDurationSeconds = 30; // Dev mode: 30 seconds (production: 15 minutes)
+  static const int _quarantineDurationSeconds = 900; // Production: 15 minutes (dev: 30 seconds)
 
   /// Save user preferences to local storage
   Future<void> savePreferences(UserPreferences preferences) async {

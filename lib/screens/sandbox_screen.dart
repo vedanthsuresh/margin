@@ -119,7 +119,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'A 30-second cooling-off period will begin. This time helps you reflect on whether this commitment is truly necessary.',
+              'A 15-minute cooling-off period will begin. This time helps you reflect on whether this commitment is truly necessary.',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
@@ -130,7 +130,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'After 30 seconds, you can choose to proceed with copying the response.',
+                'After 15 minutes, you can choose to proceed with copying the response.',
                 style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
               ),
             ),
@@ -152,7 +152,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('I understand - Start 30-sec wait'),
+            child: const Text('I understand - Start 15-min wait'),
           ),
         ],
       ),
@@ -323,6 +323,22 @@ class _SandboxScreenState extends State<SandboxScreen> {
     }
   }
 
+  /// Extract clean response text (strips burnout warning if present)
+  String _extractCleanResponse(String text) {
+    // Check if text contains burnout warning pattern
+    final burnoutPattern = RegExp(r'If you must accept, consider: "([^"]+)"');
+    final match = burnoutPattern.firstMatch(text);
+
+    if (match != null && match.groupCount >= 1) {
+      final cleanResponse = match.group(1)!;
+      debugPrint('🧹 Extracted clean response from burnout warning');
+      return cleanResponse;
+    }
+
+    // No warning found, return as-is
+    return text;
+  }
+
   /// Copy response to clipboard
   void _copyResponse(String text) async {
     final provider = context.read<MarginProvider>();
@@ -344,7 +360,9 @@ class _SandboxScreenState extends State<SandboxScreen> {
           _isInQuarantine = false;
         });
         if (!mounted) return;
-        Clipboard.setData(ClipboardData(text: text));
+        // Extract clean response before copying
+        final cleanText = _extractCleanResponse(text);
+        Clipboard.setData(ClipboardData(text: cleanText));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Response copied to clipboard'),
@@ -380,7 +398,9 @@ class _SandboxScreenState extends State<SandboxScreen> {
     debugPrint('📋 Normal copy flow');
     if (!mounted) return;
 
-    Clipboard.setData(ClipboardData(text: text));
+    // Extract clean response before copying (handles all cases)
+    final cleanText = _extractCleanResponse(text);
+    Clipboard.setData(ClipboardData(text: cleanText));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Response copied to clipboard'),

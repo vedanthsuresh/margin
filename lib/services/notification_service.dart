@@ -101,15 +101,15 @@ class NotificationService {
         iOS: iosDetails,
       );
 
-      // Schedule for 30 seconds from now (dev mode testing)
-      final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 30));
+      // Schedule for 15 minutes from now (production)
+      final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 15));
 
       debugPrint('📅 Scheduling notification for: $scheduledTime');
 
       await _notifications.zonedSchedule(
         0, // notification id
         'Cooling-Off Period Complete',
-        'Your 30-second reflection period has ended. You can now copy your response.',
+        'Your 15-minute reflection period has ended. You can now copy your response.',
         scheduledTime,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.inexact, // Changed from exactAllowWhileIdle
@@ -169,7 +169,7 @@ class NotificationService {
       await _notifications.show(
         0, // Same ID as scheduled notification
         'Cooling-Off Period Complete',
-        'Your 30-second reflection period has ended. You can now copy your response.',
+        'Your 15-minute reflection period has ended. You can now copy your response.',
         notificationDetails,
       );
 

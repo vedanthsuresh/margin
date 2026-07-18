@@ -10,12 +10,6 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Check if app was launched via share intent
-    if let userActivityDict = launchOptions?[.userActivity] as? [String: Any],
-       let userActivity = userActivityDict["NSUserActivity"] as? NSUserActivity {
-      handleUserActivity(userActivity)
-    }
-
     // Check for incoming URL
     if let url = launchOptions?[.url] as? URL {
       handleIncomingURL(url)

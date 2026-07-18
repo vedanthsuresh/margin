@@ -12,7 +12,7 @@ import 'package:firebase_ai/firebase_ai.dart';
 /// For production, move AI calls to a backend server to secure API keys.
 class AIResponseService {
   /// Set to true to use mock responses instead of calling AI API (for testing)
-  static const bool useMock = false;
+  static const bool useMock = true;
 
   final model = FirebaseAI.googleAI().generativeModel(
     model: 'gemini-3.5-flash',

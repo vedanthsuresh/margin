@@ -119,7 +119,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'A 15-minute cooling-off period will begin. This time helps you reflect on whether this commitment is truly necessary.',
+              'A 30-second cooling-off period will begin. This time helps you reflect on whether this commitment is truly necessary.',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
@@ -130,7 +130,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'After 15 minutes, you can choose to proceed with copying the response.',
+                'After 30 seconds, you can choose to proceed with copying the response.',
                 style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
               ),
             ),
@@ -152,7 +152,7 @@ class _SandboxScreenState extends State<SandboxScreen> {
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('I understand - Start 15-min wait'),
+            child: const Text('I understand - Start 30-sec wait'),
           ),
         ],
       ),

@@ -10,6 +10,7 @@ import 'services/calendar_service.dart';
 import 'services/preferences_service.dart';
 import 'services/ai_response_service.dart';
 import 'services/ai_feedback_analysis_service.dart';
+import 'services/notification_service.dart';
 import 'providers/margin_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -17,6 +18,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService().initialize();
   runApp(const MarginApp());
 }
 

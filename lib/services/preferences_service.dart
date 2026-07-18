@@ -9,7 +9,7 @@ class PreferencesService {
   static const String _onboardingCompletedKey = 'onboarding_completed';
   static const String _dimensionOverridesKey = 'dimension_overrides';
   static const String _frictionLockQuarantineKey = 'friction_lock_quarantine';
-  static const int _quarantineDurationSeconds = 30; // Testing: 30 seconds (production: 15 minutes)
+  static const int _quarantineDurationMinutes = 15; // Production: 15 minutes
 
   /// Save user preferences to local storage
   Future<void> savePreferences(UserPreferences preferences) async {
@@ -95,7 +95,7 @@ class PreferencesService {
     if (startTimeMillis == null) return 0;
 
     final elapsed = DateTime.now().millisecondsSinceEpoch - startTimeMillis;
-    final quarantineDuration = Duration(seconds: _quarantineDurationSeconds).inMilliseconds;
+    final quarantineDuration = Duration(minutes: _quarantineDurationMinutes).inMilliseconds;
 
     // Clear if expired
     if (elapsed >= quarantineDuration) {

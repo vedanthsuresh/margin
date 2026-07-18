@@ -63,6 +63,10 @@ dependencies:
   firebase_ai: ^3.14.1
   firebase_app_check: ^0.4.5+2
 
+  # Notifications for friction lock timer
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

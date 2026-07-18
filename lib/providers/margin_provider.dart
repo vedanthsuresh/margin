@@ -406,6 +406,7 @@ class MarginProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   MarginContext? get context => _context;
+  PreferencesService get preferencesService => _preferencesService;
 
   /// Generate AI-powered boundary responses
   Future<BoundaryResponses> generateBoundaryResponses({

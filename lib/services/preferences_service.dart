@@ -8,6 +8,8 @@ class PreferencesService {
   static const String _preferencesKey = 'user_preferences';
   static const String _onboardingCompletedKey = 'onboarding_completed';
   static const String _dimensionOverridesKey = 'dimension_overrides';
+  static const String _frictionLockQuarantineKey = 'friction_lock_quarantine';
+  static const int _quarantineDurationSeconds = 30; // Testing: 30 seconds (production: 15 minutes)
 
   /// Save user preferences to local storage
   Future<void> savePreferences(UserPreferences preferences) async {
@@ -77,5 +79,45 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_preferencesKey);
     await prefs.remove(_onboardingCompletedKey);
+  }
+
+  /// Save quarantine timestamp (when friction lock was triggered)
+  Future<void> saveQuarantineTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_frictionLockQuarantineKey, DateTime.now().millisecondsSinceEpoch);
+    debugPrint('💾 Saved quarantine timestamp');
+  }
+
+  /// Get remaining quarantine time in milliseconds (0 if expired/not set)
+  Future<int> getQuarantineRemainingMillis() async {
+    final prefs = await SharedPreferences.getInstance();
+    final startTimeMillis = prefs.getInt(_frictionLockQuarantineKey);
+    if (startTimeMillis == null) return 0;
+
+    final elapsed = DateTime.now().millisecondsSinceEpoch - startTimeMillis;
+    final quarantineDuration = Duration(seconds: _quarantineDurationSeconds).inMilliseconds;
+
+    // Clear if expired
+    if (elapsed >= quarantineDuration) {
+      await prefs.remove(_frictionLockQuarantineKey);
+      debugPrint('🕐 Quarantine expired, cleared');
+      return 0;
+    }
+
+    final remaining = quarantineDuration - elapsed;
+    debugPrint('🕐 Quarantine active: ${(Duration(milliseconds: remaining).inSeconds)}s remaining');
+    return remaining;
+  }
+
+  /// Check if quarantine is active
+  Future<bool> isQuarantineActive() async {
+    return await getQuarantineRemainingMillis() > 0;
+  }
+
+  /// Clear quarantine timestamp (for testing)
+  Future<void> clearQuarantineTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_frictionLockQuarantineKey);
+    debugPrint('🗑️ Cleared quarantine timestamp');
   }
 }

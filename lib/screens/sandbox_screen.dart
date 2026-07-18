@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/margin_provider.dart';
 import '../models/boundary_responses.dart';
 import '../models/margin_score.dart';
+import '../services/notification_service.dart';
 
 /// Boundary Sandbox - Where users paste demanding requests and get AI-generated responses
 class SandboxScreen extends StatefulWidget {
@@ -23,11 +26,241 @@ class _SandboxScreenState extends State<SandboxScreen> {
   bool _isGenerating = false;
   String? _errorMessage;
 
+  // Friction lock state
+  bool _isInQuarantine = false;
+  bool _quarantineCompleted = false; // Track if user has completed quarantine
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkQuarantineState();
+  }
+
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _textController.dispose();
     _responseScrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkQuarantineState() async {
+    final provider = context.read<MarginProvider>();
+    final isActive = await provider.preferencesService.isQuarantineActive();
+    if (isActive) {
+      setState(() => _isInQuarantine = true);
+    }
+  }
+
+  void _startCountdownTimer(StateSetter setDialogState) {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final provider = context.read<MarginProvider>();
+      final remaining = await provider.preferencesService
+          .getQuarantineRemainingMillis();
+
+      if (remaining <= 0) {
+        timer.cancel();
+        // Mark quarantine as completed and update state
+        debugPrint('⏱️ Timer ended, setting _quarantineCompleted = true');
+        setState(() {
+          _isInQuarantine = false;
+          _quarantineCompleted = true;
+        });
+        setDialogState(() {}); // Trigger dialog rebuild to show "Copy Response" button
+
+        // Show notification immediately (more reliable than scheduled for short timers)
+        _showQuarantineEndNotification();
+      } else {
+        setDialogState(() {}); // Trigger dialog rebuild
+      }
+    });
+  }
+
+  void _showBurnoutWarning(
+    BuildContext context,
+    String responseText,
+    MarginScore score,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Force acknowledgment
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Text('Burnout Warning'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your capacity is at ${score.finalScore}%. Accepting this request puts you at risk of burnout.',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'A 30-second cooling-off period will begin. This time helps you reflect on whether this commitment is truly necessary.',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'After 30 seconds, you can choose to proceed with copying the response.',
+                style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel - I\'ll reconsider'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _startQuarantine();
+              if (!mounted) return;
+              _showQuarantineDialog(this.context, responseText);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('I understand - Start 30-sec wait'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuarantineDialog(BuildContext context, String responseText) {
+    // Get provider before showing dialog to avoid context issues
+    final provider = context.read<MarginProvider>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return FutureBuilder<int>(
+            future: provider.preferencesService.getQuarantineRemainingMillis(),
+            initialData: 0,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return AlertDialog(
+                  title: const Text('Error'),
+                  content: Text('Error: ${snapshot.error}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              }
+
+              final remainingMillis = snapshot.data ?? 0;
+              final remaining = Duration(milliseconds: remainingMillis);
+              final canCopy = remainingMillis <= 0;
+
+              // Start countdown timer on first build
+              if (!canCopy && _countdownTimer == null) {
+                _startCountdownTimer(setDialogState);
+              }
+
+              return AlertDialog(
+                title: const Text('Cooling-Off Period'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!canCopy) ...[
+                      Icon(Icons.timer, size: 48, color: Colors.orange),
+                      const SizedBox(height: 16),
+                      Text(
+                        '${remaining.inMinutes}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')} remaining',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Take this time to consider: Is this commitment truly necessary?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ] else ...[
+                      Icon(Icons.check_circle, size: 48, color: Colors.green),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cooling-off period complete.',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  if (!canCopy)
+                    TextButton(
+                      onPressed: () {
+                        _countdownTimer?.cancel();
+                        _countdownTimer = null;
+                        // Cancel notification since user is closing the dialog
+                        NotificationService().cancelQuarantineEndNotification();
+                        Navigator.pop(dialogContext);
+                      },
+                      child: const Text('Close'),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: () {
+                        _countdownTimer?.cancel();
+                        _countdownTimer = null;
+                        Navigator.pop(dialogContext);
+                        _copyResponse(responseText);
+                      },
+                      child: const Text('Copy Response'),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _startQuarantine() async {
+    final provider = context.read<MarginProvider>();
+    await provider.preferencesService.saveQuarantineTimestamp();
+
+    // Schedule notification for when quarantine ends (backup if app is killed)
+    await NotificationService().scheduleQuarantineEndNotification();
+
+    setState(() => _isInQuarantine = true);
+  }
+
+  /// Show notification immediately when quarantine ends
+  void _showQuarantineEndNotification() async {
+    // Cancel the scheduled notification first to avoid duplicates
+    await NotificationService().cancelQuarantineEndNotification();
+
+    // Show immediate notification
+    await NotificationService().showQuarantineEndNotification();
   }
 
   /// Generate responses using AI service
@@ -41,6 +274,9 @@ class _SandboxScreenState extends State<SandboxScreen> {
       _isGenerating = true;
       _errorMessage = null;
       _selectedAction = null;
+      // Reset quarantine state for new request
+      _quarantineCompleted = false;
+      _isInQuarantine = false;
     });
 
     try {
@@ -73,7 +309,62 @@ class _SandboxScreenState extends State<SandboxScreen> {
   }
 
   /// Copy response to clipboard
-  void _copyResponse(String text) {
+  void _copyResponse(String text) async {
+    final provider = context.read<MarginProvider>();
+    final score = provider.currentScore!;
+
+    // Check if this is an "Accept Request" with depleted capacity
+    final isAcceptRequest = _selectedAction == ActionType.acceptRequest;
+    final isDepleted = score.capacityLevel == CapacityLevel.depleted;
+
+    debugPrint('📋 _copyResponse called: isAcceptRequest=$isAcceptRequest, isDepleted=$isDepleted, _quarantineCompleted=$_quarantineCompleted');
+
+    if (isAcceptRequest && isDepleted) {
+      // If quarantine was just completed, allow the copy
+      if (_quarantineCompleted) {
+        debugPrint('✅ Quarantine completed, allowing copy');
+        // Reset quarantine state and allow copy
+        setState(() {
+          _quarantineCompleted = false;
+          _isInQuarantine = false;
+        });
+        if (!mounted) return;
+        Clipboard.setData(ClipboardData(text: text));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Response copied to clipboard'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // Check if already in quarantine
+      final remaining = await provider.preferencesService
+          .getQuarantineRemainingMillis();
+
+      debugPrint('🕐 Remaining: ${remaining}ms');
+
+      if (!mounted) return;
+
+      if (remaining > 0) {
+        // Still in quarantine - show countdown dialog
+        debugPrint('🔒 Still in quarantine, showing countdown dialog');
+        setState(() => _isInQuarantine = true);
+        _showQuarantineDialog(context, text);
+        return;
+      }
+
+      // First time - Show burnout warning (will start quarantine on acknowledgment)
+      debugPrint('⚠️ First time, showing burnout warning');
+      _showBurnoutWarning(context, text, score);
+      return;
+    }
+
+    // Normal copy flow
+    debugPrint('📋 Normal copy flow');
+    if (!mounted) return;
+
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -282,7 +573,7 @@ class _MarginIndicator extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: capacityColor.withOpacity(0.2),
+                      color: capacityColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

@@ -11,6 +11,9 @@ import 'package:firebase_ai/firebase_ai.dart';
 /// DEMO/HACKATHON NOTE: This service uses client-side API keys for demo purposes.
 /// For production, move AI calls to a backend server to secure API keys.
 class AIResponseService {
+  /// Set to true to use mock responses instead of calling AI API (for testing)
+  static const bool useMock = true;
+
   final model = FirebaseAI.googleAI().generativeModel(
     model: 'gemini-3.5-flash',
   );
@@ -31,6 +34,12 @@ class AIResponseService {
     required int marginScore,
     required CapacityLevel capacityLevel,
   }) async {
+    // Use mock responses if in mock mode (for testing)
+    if (useMock) {
+      debugPrint('AIResponseService: Using mock responses (useMock=true)');
+      return _getMockResponses(incomingText, relationship, capacityLevel);
+    }
+
     try {
       // Add a random variety hint to encourage different responses each time
       final varietyHint = _getVarietyHint();

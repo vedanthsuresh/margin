@@ -7,6 +7,7 @@ import '../providers/margin_provider.dart';
 import '../models/boundary_responses.dart';
 import '../models/margin_score.dart';
 import '../services/notification_service.dart';
+import '../services/share_intent_service.dart';
 
 /// Boundary Sandbox - Where users paste demanding requests and get AI-generated responses
 class SandboxScreen extends StatefulWidget {
@@ -34,7 +35,21 @@ class _SandboxScreenState extends State<SandboxScreen> {
   @override
   void initState() {
     super.initState();
+    _checkForSharedText();
     _checkQuarantineState();
+  }
+
+  /// Check if text was shared from another app and pre-populate the text field
+  void _checkForSharedText() {
+    final shareIntentService = ShareIntentService();
+    final sharedText = shareIntentService.getSharedText();
+
+    if (sharedText != null && sharedText.isNotEmpty) {
+      debugPrint('📥 SandboxScreen: Pre-populating with shared text: "$sharedText"');
+      _textController.text = sharedText;
+      // Clear the shared text after consuming it
+      shareIntentService.clearSharedText();
+    }
   }
 
   @override
